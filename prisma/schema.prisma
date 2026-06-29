@@ -1,0 +1,89 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         Role     @default(USER)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  pages               Page[]
+  breathingPresets    BreathingPreset[]
+  pageConsultations   PageConsultation[]
+  breathingSessions   BreathingSession[]
+}
+
+model Page {
+  id        Int      @id @default(autoincrement())
+  title     String
+  slug      String   @unique
+  content   String
+  isVisible Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  createdBy     User?               @relation(fields: [createdById], references: [id])
+  createdById   Int?
+  consultations PageConsultation[]
+}
+
+model BreathingPreset {
+  id             Int      @id @default(autoincrement())
+  name           String
+  description    String?
+  inhaleDuration Int
+  holdDuration   Int      @default(0)
+  exhaleDuration Int
+  cycles         Int      @default(5)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  createdBy User?             @relation(fields: [createdById], references: [id])
+  createdById Int?
+  sessions   BreathingSession[]
+}
+
+model PageConsultation {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  pageId      Int
+  consultedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  page Page @relation(fields: [pageId], references: [id])
+
+  @@unique([userId, pageId])
+}
+
+model BreathingSession {
+  id                Int      @id @default(autoincrement())
+  userId            Int
+  breathingPresetId Int
+  startedAt         DateTime @default(now())
+  completedAt       DateTime?
+
+  user            User            @relation(fields: [userId], references: [id])
+  breathingPreset BreathingPreset @relation(fields: [breathingPresetId], references: [id])
+}

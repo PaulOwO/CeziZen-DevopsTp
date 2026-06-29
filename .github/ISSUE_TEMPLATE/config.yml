@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://cesizen-docs.example.com
+    about: Check our documentation
+  - name: Community Forum
+    url: https://community.cesizen.example.com
+    about: Ask questions in our community

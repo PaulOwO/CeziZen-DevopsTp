@@ -1,0 +1,82 @@
+name: Issue Triage & Automation
+
+on:
+  issues:
+    types: [opened, reopened]
+  pull_request:
+    types: [opened, ready_for_review]
+
+jobs:
+  auto-label:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Label new issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const pr = context.payload.pull_request;
+            const target = issue || pr;
+            
+            if (target.title.includes('[BUG]')) {
+              github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: target.number,
+                labels: ['bug']
+              });
+            }
+            
+            if (target.title.includes('[FEATURE]')) {
+              github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: target.number,
+                labels: ['feature']
+              });
+            }
+            
+            if (target.title.includes('[SECURITY]')) {
+              github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: target.number,
+                labels: ['security']
+              });
+            }
+
+  priority-prompt:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    if: github.event.action == 'opened'
+    steps:
+      - name: Request priority classification
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueNumber = context.issue.number;
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: `👋 Thank you for reporting this issue!\n\nPlease help us prioritize by adding one of these labels:\n- 🔴 \`critical\` - System down / Data loss\n- 🟠 \`high\` - Major functionality broken\n- 🟡 \`medium\` - Workaround available\n- 🟢 \`low\` - Minor issue\n\nAlso ensure you've selected the correct issue type in the template.`
+            });
+
+  auto-close-stale:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Close stale issues
+        uses: actions/stale@v9
+        with:
+          days-before-issue-stale: 30
+          days-before-issue-close: 60
+          stale-issue-message: '⚠️ This issue has been automatically marked as stale because it has not had activity for 30 days.'
+          close-issue-message: '🤖 Closing due to inactivity (60+ days without updates).'
+          stale-issue-label: 'stale'
+          exempt-issue-labels: 'critical,bug,security,blocked'
