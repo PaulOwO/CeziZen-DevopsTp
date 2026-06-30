@@ -1,0 +1,48 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: self-hosted # ton runner local
+
+    steps:
+      # 1. Récupère le code source
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # nécessaire pour SonarCloud (analyse l'historique git)
+
+      # 2. Installe Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # 3. Installe les dépendances (équivalent npm install mais reproductible)
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Lint — vérifie la qualité du code
+      - name: Lint
+        run: npm run lint
+
+      # 5. Build — vérifie que le projet compile sans erreur
+      - name: Build
+        run: npm run build
+
+      # 6. Tests — lance vitest
+      - name: Tests
+        run: npm test -- --run # --run pour sortir après l'exécution (pas en watch mode)
+
+      # 7. Analyse SonarCloud
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # généré automatiquement par GitHub
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   # à configurer (étape 4)

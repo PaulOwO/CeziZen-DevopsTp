@@ -6,6 +6,7 @@
 | ------------ | ------------ | -------------------------------------------------------------------------------- |
 | `pre-commit` | `git commit` | Reformate automatiquement les fichiers stagés avec Prettier.                     |
 | `commit-msg` | `git commit` | Vérifie que le message suit le format conventionnel (`feat:`, `fix:`, `docs:`…). |
+| `pre-push`   | `git push`   | Vérifie que le nom de la branche suit le format `<type>/<description>`.          |
 
 ---
 
@@ -20,6 +21,16 @@ Déclenché à l'ouverture d'une issue ou d'une PR.
 | `auto-label`       | Ajoute automatiquement un label (`bug`, `feature`, `security`) selon le titre de l'issue ou de la PR. |
 | `priority-prompt`  | Poste un commentaire sur les nouvelles issues pour demander de choisir une priorité (critical → low). |
 | `auto-close-stale` | Marque les issues sans activité depuis 30 jours comme "stale", puis les ferme après 60 jours.         |
+
+---
+
+### `branch-check.yml` — Nommage des branches
+
+Déclenché à chaque push et ouverture de PR.
+
+| Job                 | Rôle                                                                                               |
+| ------------------- | -------------------------------------------------------------------------------------------------- |
+| `check-branch-name` | Vérifie que la branche respecte le format `<type>/<description>` (`feature/`, `fix/`, `hotfix/`…). |
 
 ---
 

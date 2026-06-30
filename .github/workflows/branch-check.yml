@@ -1,0 +1,30 @@
+name: Branch Name Check
+
+on:
+  push:
+    branches-ignore:
+      - main
+      - master
+      - develop
+  pull_request:
+
+jobs:
+  check-branch-name:
+    runs-on: ubuntu-latest
+    name: Validate branch name
+    steps:
+      - name: Check branch naming convention
+        run: |
+          branch="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+          pattern="^(main|master|develop|feature|fix|hotfix|release|docs|chore|refactor|test)/.+"
+
+          if ! echo "$branch" | grep -qE "$pattern"; then
+            echo "❌ Nom de branche invalide : '$branch'"
+            echo ""
+            echo "Format attendu : <type>/<description>"
+            echo "Types autorisés : feature, fix, hotfix, release, docs, chore, refactor, test"
+            echo "Exemple : feature/login-page"
+            exit 1
+          fi
+
+          echo "✅ Nom de branche valide : '$branch'"
