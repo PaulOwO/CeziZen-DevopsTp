@@ -1,0 +1,13 @@
+branch=$(git rev-parse --abbrev-ref HEAD)
+pattern="^(main|master|develop|feature|fix|hotfix|release|docs|chore|refactor|test)/.+"
+
+if ! echo "$branch" | grep -qE "$pattern"; then
+  echo ""
+  echo "❌ Nom de branche invalide : '$branch'"
+  echo ""
+  echo "Format attendu : <type>/<description>"
+  echo "Types autorisés : feature, fix, hotfix, release, docs, chore, refactor, test"
+  echo "Exemple : feature/login-page"
+  echo ""
+  exit 1
+fi
