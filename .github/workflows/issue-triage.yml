@@ -52,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       issues: write
-    if: github.event.action == 'opened'
+    if: github.event.action == 'opened' && github.event_name == 'issues'
     steps:
       - name: Request priority classification
         uses: actions/github-script@v7
