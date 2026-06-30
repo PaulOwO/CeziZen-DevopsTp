@@ -26,14 +26,13 @@ async function handleSubmit() {
       body: {
         currentPassword: form.currentPassword,
         newPassword: form.newPassword,
-      }
+      },
     })
 
     success.value = true
     form.currentPassword = ''
     form.newPassword = ''
     form.confirmPassword = ''
-
   } catch (e: any) {
     error.value = e.data?.message || 'Une erreur est survenue'
   } finally {
@@ -46,12 +45,7 @@ async function handleSubmit() {
   <div>
     <h2>Changer mon mot de passe</h2>
 
-    <DsfrAlert
-      v-if="error"
-      type="error"
-      :title="error"
-      class="fr-mb-3w"
-    />
+    <DsfrAlert v-if="error" type="error" :title="error" class="fr-mb-3w" />
 
     <DsfrAlert
       v-if="success"
@@ -93,8 +87,8 @@ async function handleSubmit() {
     <DsfrButton
       label="Modifier mon mot de passe"
       :disabled="loading"
-      @click="handleSubmit"
       data-e2e="modify-password-button"
+      @click="handleSubmit"
     />
   </div>
 </template>

@@ -10,7 +10,7 @@ definePageMeta({
     if (loggedIn.value) {
       return navigateTo('/account')
     }
-  }
+  },
 })
 const error = ref('')
 const loading = ref(false)
@@ -25,8 +25,7 @@ async function handleLogin() {
       body: form,
     })
 
-     window.location.href = '/home'
-
+    window.location.href = '/home'
   } catch (e: any) {
     error.value = e.data?.message || 'Une erreur est survenue'
   } finally {
@@ -39,20 +38,14 @@ async function handleLogin() {
   <div class="fr-container fr-my-6w">
     <div class="fr-grid-row fr-grid-row--center">
       <div class="fr-col-12 fr-col-md-6">
-
         <h1>Se connecter</h1>
 
-        <DsfrAlert
-          v-if="error"
-          type="error"
-          :title="error"
-          class="fr-mb-3w"
-        />
+        <DsfrAlert v-if="error" type="error" :title="error" class="fr-mb-3w" />
 
         <DsfrInputGroup>
           <DsfrInput
-          data-e2e="email-input"
             v-model="form.email"
+            data-e2e="email-input"
             label="Email"
             label-visible
             type="email"
@@ -62,8 +55,8 @@ async function handleLogin() {
 
         <DsfrInputGroup>
           <DsfrInput
-            data-e2e="password-input"
             v-model="form.password"
+            data-e2e="password-input"
             label="Mot de passe"
             label-visible
             type="password"
@@ -81,7 +74,6 @@ async function handleLogin() {
           Pas encore de compte ?
           <NuxtLink to="/auth/register">S'inscrire</NuxtLink>
         </p>
-
       </div>
     </div>
   </div>

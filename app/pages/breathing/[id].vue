@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { calculateTotalDuration, formatDuration } from '~/utils/helpers'
 const route = useRoute()
 const { data: preset } = await useFetch(`/api/breathing/${route.params.id}`)
-import { calculateTotalDuration, formatDuration } from '~/utils/helpers'
 
 type Phase = 'idle' | 'inhale' | 'hold' | 'exhale' | 'done'
 
@@ -12,47 +12,61 @@ const isRunning = ref(false)
 
 const phaseLabel = computed(() => {
   switch (phase.value) {
-    case 'inhale': return 'Inspirez'
-    case 'hold': return 'Retenez'
-    case 'exhale': return 'Expirez'
-    case 'done': return 'Terminé !'
-    default: return 'Prêt ?'
+    case 'inhale':
+      return 'Inspirez'
+    case 'hold':
+      return 'Retenez'
+    case 'exhale':
+      return 'Expirez'
+    case 'done':
+      return 'Terminé !'
+    default:
+      return 'Prêt ?'
   }
 })
 
 const totalDuration = computed(() => {
   if (!preset.value) return '00:00'
-  return formatDuration(calculateTotalDuration(
-    preset.value.inhaleDuration,
-    preset.value.holdDuration,
-    preset.value.exhaleDuration,
-    preset.value.cycles
-  ))
+  return formatDuration(
+    calculateTotalDuration(
+      preset.value.inhaleDuration,
+      preset.value.holdDuration,
+      preset.value.exhaleDuration,
+      preset.value.cycles
+    )
+  )
 })
 
 const circleSize = computed(() => {
   switch (phase.value) {
-    case 'inhale': return '200px'
-    case 'hold': return '200px'
-    case 'exhale': return '80px'
-    default: return '120px'
+    case 'inhale':
+      return '200px'
+    case 'hold':
+      return '200px'
+    case 'exhale':
+      return '80px'
+    default:
+      return '120px'
   }
 })
 
 const circleColor = computed(() => {
   switch (phase.value) {
-    case 'inhale': return '#0063CB'
-    case 'hold': return '#000091'
-    case 'exhale': return '#8585F6'
-    default: return '#E3E3FD'
+    case 'inhale':
+      return '#0063CB'
+    case 'hold':
+      return '#000091'
+    case 'exhale':
+      return '#8585F6'
+    default:
+      return '#E3E3FD'
   }
 })
-
 
 let stopRequested = false
 
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     let remaining = ms / 1000
     timeLeft.value = remaining
 
@@ -125,7 +139,7 @@ function stopExercise() {
       :links="[
         { text: 'Accueil', to: '/home' },
         { text: 'Exercices de respiration', to: '/breathing' },
-        { text: preset?.name ?? '' }
+        { text: preset?.name ?? '' },
       ]"
     />
 
@@ -133,7 +147,7 @@ function stopExercise() {
     <p v-if="preset?.description">{{ preset.description }}</p>
 
     <!-- Cercle animé -->
-    <div class="fr-my-6w" style="display: flex; flex-direction: column; align-items: center;">
+    <div class="fr-my-6w" style="display: flex; flex-direction: column; align-items: center">
       <div
         :style="{
           width: circleSize,
@@ -146,44 +160,27 @@ function stopExercise() {
           justifyContent: 'center',
         }"
       >
-        <span style="color: white; font-size: 1.5rem; font-weight: bold;">
+        <span style="color: white; font-size: 1.5rem; font-weight: bold">
           {{ timeLeft > 0 ? timeLeft : '' }}
         </span>
       </div>
 
-      <p class="fr-mt-4w" style="font-size: 1.5rem; font-weight: bold;">
+      <p class="fr-mt-4w" style="font-size: 1.5rem; font-weight: bold">
         {{ phaseLabel }}
       </p>
 
-      <p v-if="isRunning" class="fr-text--sm">
-        Cycle {{ currentCycle }} / {{ preset?.cycles }}
-      </p>
+      <p v-if="isRunning" class="fr-text--sm">Cycle {{ currentCycle }} / {{ preset?.cycles }}</p>
     </div>
 
     <!-- Boutons -->
-    <div style="display: flex; justify-content: center; gap: 1rem;">
-      <DsfrButton
-        v-if="!isRunning && phase !== 'done'"
-        label="Commencer"
-        @click="startExercise"
-      />
-      <DsfrButton
-        v-if="isRunning"
-        label="Arrêter"
-        secondary
-        @click="stopExercise"
-      />
-      <DsfrButton
-        v-if="phase === 'done'"
-        label="Recommencer"
-        @click="startExercise"
-      />
-      <DsfrButton
-        label="Retour"
-        secondary
-        @click="navigateTo('/breathing')"
-      />
+    <div style="display: flex; justify-content: center; gap: 1rem">
+      <DsfrButton v-if="!isRunning && phase !== 'done'" label="Commencer" @click="startExercise" />
+      <DsfrButton v-if="isRunning" label="Arrêter" secondary @click="stopExercise" />
+      <DsfrButton v-if="phase === 'done'" label="Recommencer" @click="startExercise" />
+      <DsfrButton label="Retour" secondary @click="navigateTo('/breathing')" />
     </div>
-    <p class="fr-text--sm" style="display: flex; justify-content: center; gap: 1rem;">Durée totale : {{ totalDuration }}</p>
+    <p class="fr-text--sm" style="display: flex; justify-content: center; gap: 1rem">
+      Durée totale : {{ totalDuration }}
+    </p>
   </div>
 </template>

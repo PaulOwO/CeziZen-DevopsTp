@@ -1,6 +1,6 @@
 # Vue d'ensemble CI/CD & Automatisations
 
-## Hooks Git (local, avant chaque commit)
+## Hooks Git (local, avant chaque commit/push)
 
 | Hook         | Déclencheur  | Rôle                                                                             |
 | ------------ | ------------ | -------------------------------------------------------------------------------- |
@@ -12,15 +12,17 @@
 
 ## GitHub Actions
 
-### `issue-triage.yml` — Gestion des Issues & PRs
+### `ci.yml` — Pipeline CI
 
-Déclenché à l'ouverture d'une issue ou d'une PR.
+Déclenché sur chaque push et PR vers `master`. S'exécute sur le **runner local**.
 
-| Job                | Rôle                                                                                                  |
-| ------------------ | ----------------------------------------------------------------------------------------------------- |
-| `auto-label`       | Ajoute automatiquement un label (`bug`, `feature`, `security`) selon le titre de l'issue ou de la PR. |
-| `priority-prompt`  | Poste un commentaire sur les nouvelles issues pour demander de choisir une priorité (critical → low). |
-| `auto-close-stale` | Marque les issues sans activité depuis 30 jours comme "stale", puis les ferme après 60 jours.         |
+| Étape      | Commande           | Rôle                                                         |
+| ---------- | ------------------ | ------------------------------------------------------------ |
+| Install    | `npm ci`           | Installe les dépendances de façon reproductible.             |
+| Lint       | `npm run lint`     | Vérifie la qualité du code avec ESLint (`@nuxt/eslint`).     |
+| Build      | `npm run build`    | Compile le projet Nuxt — échoue si une erreur est présente.  |
+| Tests      | `npm test --run`   | Lance les tests unitaires avec Vitest.                       |
+| SonarCloud | action SonarSource | Envoie l'analyse vers SonarCloud et vérifie la Quality Gate. |
 
 ---
 
@@ -31,6 +33,18 @@ Déclenché à chaque push et ouverture de PR.
 | Job                 | Rôle                                                                                               |
 | ------------------- | -------------------------------------------------------------------------------------------------- |
 | `check-branch-name` | Vérifie que la branche respecte le format `<type>/<description>` (`feature/`, `fix/`, `hotfix/`…). |
+
+---
+
+### `issue-triage.yml` — Gestion des Issues & PRs
+
+Déclenché à l'ouverture d'une issue ou d'une PR.
+
+| Job                | Rôle                                                                                                  |
+| ------------------ | ----------------------------------------------------------------------------------------------------- |
+| `auto-label`       | Ajoute automatiquement un label (`bug`, `feature`, `security`) selon le titre de l'issue ou de la PR. |
+| `priority-prompt`  | Poste un commentaire sur les nouvelles issues pour demander de choisir une priorité (critical → low). |
+| `auto-close-stale` | Marque les issues sans activité depuis 30 jours comme "stale", puis les ferme après 60 jours.         |
 
 ---
 
