@@ -14,7 +14,7 @@
 
 ### `ci.yml` — Pipeline CI
 
-Déclenché sur chaque push et PR vers `master`. S'exécute sur le **runner local**.
+Déclenché sur chaque push et PR vers `master` ou `develop`. S'exécute sur le **runner local**.
 
 | Étape      | Commande           | Rôle                                                         |
 | ---------- | ------------------ | ------------------------------------------------------------ |
