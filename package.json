@@ -10,7 +10,11 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "prepare": "husky",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "lint-staged": {
+    "*.{js,ts,vue,json,css,md}": "prettier --write"
   },
   "dependencies": {
     "@gouvminint/vue-dsfr": "^8.15.0",
@@ -32,6 +36,8 @@
     "@vue/test-utils": "^2.4.6",
     "happy-dom": "^20.7.0",
     "husky": "^9.1.7",
+    "lint-staged": "^17.0.8",
+    "prettier": "^3.9.4",
     "vitest": "^4.0.18"
   }
 }
