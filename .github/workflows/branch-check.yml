@@ -16,7 +16,13 @@ jobs:
       - name: Check branch naming convention
         run: |
           branch="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
-          pattern="^(main|master|develop|feature|fix|hotfix|release|docs|chore|refactor|test)/.+"
+          protected="^(main|master|develop)$"
+          pattern="^(feature|fix|hotfix|release|docs|chore|refactor|test)/.+"
+
+          if echo "$branch" | grep -qE "$protected"; then
+            echo "✅ Branche protégée exemptée : '$branch'"
+            exit 0
+          fi
 
           if ! echo "$branch" | grep -qE "$pattern"; then
             echo "❌ Nom de branche invalide : '$branch'"

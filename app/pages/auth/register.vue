@@ -21,7 +21,6 @@ async function handleRegister() {
 
     // Redirection vers la page de connexion après inscription
     await navigateTo('/auth/login')
-
   } catch (e: any) {
     error.value = e.data?.message || 'Une erreur est survenue'
   } finally {
@@ -34,22 +33,16 @@ async function handleRegister() {
   <div class="fr-container fr-my-6w">
     <div class="fr-grid-row fr-grid-row--center">
       <div class="fr-col-12 fr-col-md-6">
-
         <h1>Créer un compte</h1>
 
         <!-- Message d'erreur -->
-        <DsfrAlert
-          v-if="error"
-          type="error"
-          :title="error"
-          class="fr-mb-3w"
-        />
+        <DsfrAlert v-if="error" type="error" :title="error" class="fr-mb-3w" />
 
         <!-- Formulaire -->
         <DsfrInputGroup>
           <DsfrInput
-            data-e2e="first-name-input"
             v-model="form.firstName"
+            data-e2e="first-name-input"
             label="Prénom"
             label-visible
             placeholder="Jean"
@@ -58,8 +51,8 @@ async function handleRegister() {
 
         <DsfrInputGroup>
           <DsfrInput
-          data-e2e="last-name-input"
             v-model="form.lastName"
+            data-e2e="last-name-input"
             label="Nom"
             label-visible
             placeholder="Dupont"
@@ -79,8 +72,8 @@ async function handleRegister() {
 
         <DsfrInputGroup>
           <DsfrInput
-          data-e2e="password-input"
             v-model="form.password"
+            data-e2e="password-input"
             label="Mot de passe"
             label-visible
             type="password"
@@ -98,7 +91,6 @@ async function handleRegister() {
           Déjà un compte ?
           <NuxtLink to="/auth/login" data-e2e="login-link">Se connecter</NuxtLink>
         </p>
-
       </div>
     </div>
   </div>

@@ -1,5 +1,10 @@
 branch=$(git rev-parse --abbrev-ref HEAD)
-pattern="^(main|master|develop|feature|fix|hotfix|release|docs|chore|refactor|test)/.+"
+protected="^(main|master|develop)$"
+pattern="^(feature|fix|hotfix|release|docs|chore|refactor|test)/.+"
+
+if echo "$branch" | grep -qE "$protected"; then
+  exit 0
+fi
 
 if ! echo "$branch" | grep -qE "$pattern"; then
   echo ""
