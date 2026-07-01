@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@gouvminint/vue-dsfr": "^8.15.0",
+    "@iconify/vue": "^5.0.1",
     "@prisma/client": "^5.22.0",
     "bcrypt": "^6.0.0",
     "nuxt": "^4.3.1",
@@ -40,6 +41,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.0.8",
     "prettier": "^3.9.4",
+    "typescript": "^6.0.3",
     "vitest": "^4.0.18"
   }
 }
