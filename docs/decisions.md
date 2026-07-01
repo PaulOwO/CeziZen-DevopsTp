@@ -121,3 +121,11 @@
 **Décision :** L'étape `actions/checkout` utilise `fetch-depth: 0`.
 
 **Raison :** `semantic-release` compare les commits depuis la dernière release et lit les tags existants. Le clone superficiel par défaut (`fetch-depth: 1`) ne fournit ni l'historique complet ni les tags, ce qui fausserait le calcul de version. `fetch-depth: 0` récupère tout l'historique + les tags.
+
+---
+
+## Identifiants Compose externalisés dans `.env` (Security Hotspot S2068)
+
+**Décision :** Les identifiants (`POSTGRES_PASSWORD`, `DATABASE_URL`, `NUXT_SESSION_PASSWORD`) ne sont plus en dur dans `docker-compose.yml` ; ils sont injectés via un fichier `.env` non versionné, avec un modèle `.env.example` versionné (sans secret réel).
+
+**Raison :** SonarCloud signalait un mot de passe PostgreSQL en dur (règle S2068, « Make sure this password gets changed and removed from the code ») sur les lignes `DATABASE_URL` et `POSTGRES_PASSWORD`. Compose charge automatiquement `.env`, donc `docker-compose.yml` ne contient plus que des références `${VAR}`. Le healthcheck utilise `$${POSTGRES_USER}` (le `$$` échappe l'interpolation Compose pour laisser le shell du conteneur résoudre la variable). `.env` est ignoré par git **et** par Docker (`.dockerignore`) : aucun secret ne part dans le dépôt ni dans l'image. Même logique que la shadow database du CI (auth `trust`), adaptée à une base persistante qui, elle, exige un mot de passe.

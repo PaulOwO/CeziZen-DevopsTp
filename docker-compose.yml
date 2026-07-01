@@ -3,18 +3,21 @@ services:
   db:
     image: postgres:16
     restart: always
+    # Identifiants injectés depuis le fichier .env (non versionné) —
+    # aucun secret en dur dans ce fichier. Voir .env.example.
     environment:
-      POSTGRES_USER: cesizen
-      POSTGRES_PASSWORD: cesizen
-      POSTGRES_DB: cesizen
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     # Healthcheck : "démarré" ≠ "prêt à accepter des connexions".
     # Les autres services attendront que ce test passe (service_healthy).
+    # $$ échappe l'interpolation Compose → la variable est lue dans le conteneur.
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cesizen -d cesizen"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -29,7 +32,7 @@ services:
     command: npx prisma migrate deploy
     environment:
       # Hôte = `db` : le nom du service, résolu par le DNS interne de Compose.
-      DATABASE_URL: postgresql://cesizen:cesizen@db:5432/cesizen
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     depends_on:
       db:
         condition: service_healthy
@@ -42,10 +45,9 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: postgresql://cesizen:cesizen@db:5432/cesizen
-      # nuxt-auth-utils exige un secret de session (>= 32 caractères)
-      # pour chiffrer les cookies. Valeur de DEV uniquement.
-      NUXT_SESSION_PASSWORD: dev-session-secret-change-me-32chars!!
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      # Secret de session nuxt-auth-utils (>= 32 caractères), injecté depuis .env.
+      NUXT_SESSION_PASSWORD: ${NUXT_SESSION_PASSWORD}
     depends_on:
       db:
         condition: service_healthy

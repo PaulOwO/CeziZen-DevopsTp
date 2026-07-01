@@ -90,7 +90,7 @@ Compose crée un réseau privé où chaque service est joignable **par son nom**
 L'app se connecte donc à la base via l'hôte `db`, pas `localhost` :
 
 ```
-DATABASE_URL=postgresql://cesizen:cesizen@db:5432/cesizen
+DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
 ```
 
 ### Le job de migration séparé — pourquoi
@@ -114,12 +114,27 @@ Test de validation : la route `GET /api/pages/all` répond **HTTP 401** (route p
 la base répond) au lieu de **HTTP 500** (Prisma ne pouvait pas se connecter) — preuve que
 l'app parle bien à la base.
 
-### Variables d'environnement
+### Variables d'environnement & secrets
 
-| Variable                | Rôle                                                                                                                                               |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`          | Connexion Prisma → service `db`.                                                                                                                   |
-| `NUXT_SESSION_PASSWORD` | Secret de chiffrement des cookies (nuxt-auth-utils, ≥ 32 caractères). Valeur de **dev** uniquement dans le compose ; en prod, ce serait un secret. |
+Aucun secret n'est écrit en dur dans `docker-compose.yml` : les valeurs sont
+injectées via un fichier **`.env`** (non versionné) que Compose charge automatiquement.
+Un modèle **`.env.example`** (versionné, sans secret réel) sert de point de départ :
+
+```powershell
+cp .env.example .env   # puis renseigner des valeurs
+docker compose up -d --build
+```
+
+| Variable                | Rôle                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------- |
+| `POSTGRES_USER`         | Utilisateur PostgreSQL (service `db`).                                                |
+| `POSTGRES_PASSWORD`     | Mot de passe PostgreSQL — jamais en dur, uniquement dans `.env`.                      |
+| `POSTGRES_DB`           | Nom de la base.                                                                       |
+| `DATABASE_URL`          | Chaîne de connexion Prisma, composée à partir des variables ci-dessus → service `db`. |
+| `NUXT_SESSION_PASSWORD` | Secret de chiffrement des cookies (nuxt-auth-utils, ≥ 32 caractères).                 |
+
+> Le fichier `.env` est ignoré par git (`.gitignore`) **et** par Docker (`.dockerignore`) :
+> aucun secret ne part ni dans le dépôt, ni dans l'image.
 
 ---
 
