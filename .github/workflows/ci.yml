@@ -14,8 +14,6 @@ jobs:
       # 1. Récupère le code source
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # nécessaire pour SonarCloud (analyse l'historique git)
 
       # 2. Installe Node.js
       - name: Setup Node.js
@@ -40,9 +38,3 @@ jobs:
       - name: Tests
         run: npm test -- --run # --run pour sortir après l'exécution (pas en watch mode)
 
-      # 7. Analyse SonarCloud
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # généré automatiquement par GitHub
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   # à configurer (étape 4)

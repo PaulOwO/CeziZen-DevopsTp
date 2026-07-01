@@ -43,6 +43,21 @@ Ces packages sont installés en `devDependencies` et s'exécutent sur le poste d
 
 Types autorisés : `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `style`, `perf`, `ci`, `build`, `revert`
 
+### Prettier vs ESLint — rôles complémentaires
+
+Le linting se produit à **deux moments distincts** avec deux outils différents :
+
+|                     | Pre-commit (local)          | Pipeline CI                  |
+| ------------------- | --------------------------- | ---------------------------- |
+| Outil               | Prettier (via lint-staged)  | ESLint                       |
+| Rôle                | Formate le code             | Détecte les erreurs logiques |
+| Action              | **Corrige automatiquement** | **Bloque si problème**       |
+| Porte sur           | Fichiers stagés uniquement  | Tout le projet               |
+| Peut être contourné | Oui (`--no-verify`)         | Non (bloque le merge)        |
+
+**Prettier** gère le style visuel du code (indentation, guillemets, virgules…) sans analyser la logique.
+**ESLint** analyse la logique du code (imports inutilisés, types `any`, règles Vue/TypeScript…) sans reformater.
+
 ---
 
 ## 2. Hooks Git (Husky)
