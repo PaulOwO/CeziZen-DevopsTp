@@ -1,55 +1,46 @@
 import type { Page } from '@playwright/test'
 import { expect } from '@playwright/test'
 
-// Données de test
+function uuidv4() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = Math.trunc(Math.random() * 16) // NOSONAR - pseudorandom acceptable pour les tests
+    const v = c === 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
+}
+
 export function createRandomUser() {
-  function uuidv4() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-      const r = (Math.random() * 16) | 0,
-        v = c === 'x' ? r : (r & 0x3) | 0x8
-      return v.toString(16)
-    })
-  }
   return {
     firstName: `Jean${Math.random().toString(36).substring(2, 6)}`,
     lastName: `Random${Math.random().toString(36).substring(2, 6)}`,
     email: `test-${Date.now()}-${uuidv4()}@example.com`,
-    password: 'motdepasse123',
-    newPassword: 'nouveaumotdepasse123',
+    password: 'motdepasse123', // NOSONAR - credentials de test uniquement
+    newPassword: 'nouveaumotdepasse123', // NOSONAR - credentials de test uniquement
   }
-}
-function uuidv4() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    const r = (Math.random() * 16) | 0,
-      v = c === 'x' ? r : (r & 0x3) | 0x8
-    return v.toString(16)
-  })
 }
 
 export const randomUser = {
   firstName: 'Jean',
   lastName: 'Random',
-  email: `test-${Date.now()}-${uuidv4()}@example.com`, // email vraiment unique à chaque run
-  password: 'motdepasse123',
-  newPassword: 'nouveaumotdepasse123',
+  email: `test-${Date.now()}-${uuidv4()}@example.com`,
+  password: 'motdepasse123', // NOSONAR - credentials de test uniquement
+  newPassword: 'nouveaumotdepasse123', // NOSONAR - credentials de test uniquement
 }
 
-// Données de test
 export const basicUser = {
   firstName: 'Jean',
   lastName: 'Basic',
-  email: `test-user@example.com`, // email unique à chaque run
-  password: 'motdepasse123',
-  newPassword: 'nouveaumotdepasse123',
+  email: `test-user@example.com`,
+  password: 'motdepasse123', // NOSONAR - credentials de test uniquement
+  newPassword: 'nouveaumotdepasse123', // NOSONAR - credentials de test uniquement
 }
 
-// Données de test
 export const adminUser = {
   firstName: 'Jean',
   lastName: 'Admin',
-  email: `test-admin@example.com`, // email unique à chaque run
-  password: 'motdepasse123',
-  newPassword: 'nouveaumotdepasse123',
+  email: `test-admin@example.com`,
+  password: 'motdepasse123', // NOSONAR - credentials de test uniquement
+  newPassword: 'nouveaumotdepasse123', // NOSONAR - credentials de test uniquement
 }
 
 export async function login(page: Page, email: string, password: string) {
