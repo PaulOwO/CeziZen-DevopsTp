@@ -122,20 +122,16 @@ runs-on: self-hosted
 **Déclencheurs :** push ou PR vers `master` ou `develop`
 **Runner :** self-hosted (local)
 
-| Étape      | Commande                                  | Rôle                                                                             |
-| ---------- | ----------------------------------------- | -------------------------------------------------------------------------------- |
-| Checkout   | `actions/checkout@v4` (fetch-depth: 0)    | Récupère tout l'historique git (requis par SonarCloud).                          |
-| Node.js    | `actions/setup-node@v4` (v22)             | Installe Node.js 22 LTS.                                                         |
-| Install    | `npm ci`                                  | Installe les dépendances de façon strictement reproductible depuis le lock file. |
-| Lint       | `npm run lint`                            | Analyse statique ESLint — échoue si des erreurs sont présentes.                  |
-| Build      | `npm run build`                           | Compile le projet Nuxt — échoue si une erreur de compilation est présente.       |
-| Tests      | `npm test -- --run`                       | Lance les tests unitaires Vitest en mode one-shot (pas de watch).                |
-| SonarCloud | `SonarSource/sonarcloud-github-action@v3` | Envoie l'analyse à SonarCloud et vérifie la Quality Gate.                        |
+| Étape    | Commande                      | Rôle                                                                             |
+| -------- | ----------------------------- | -------------------------------------------------------------------------------- |
+| Checkout | `actions/checkout@v4`         | Récupère le code source.                                                         |
+| Node.js  | `actions/setup-node@v4` (v22) | Installe Node.js 22 LTS.                                                         |
+| Install  | `npm ci`                      | Installe les dépendances de façon strictement reproductible depuis le lock file. |
+| Lint     | `npm run lint`                | Analyse statique ESLint — échoue si des erreurs sont présentes.                  |
+| Build    | `npm run build`               | Compile le projet Nuxt — échoue si une erreur de compilation est présente.       |
+| Tests    | `npm test -- --run`           | Lance les tests unitaires Vitest en mode one-shot (pas de watch).                |
 
-**Secrets requis :**
-
-- `GITHUB_TOKEN` — généré automatiquement par GitHub
-- `SONAR_TOKEN` — généré dans SonarCloud (My Account → Security → Tokens), ajouté dans GitHub → Settings → Secrets
+> SonarCloud n'est **pas** dans ce pipeline — il est déclenché automatiquement par la GitHub App SonarCloud sur chaque PR. Voir [decisions.md](decisions.md).
 
 ---
 
