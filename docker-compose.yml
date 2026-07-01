@@ -1,4 +1,5 @@
 services:
+  # ── Base de données ────────────────────────────────────────────
   db:
     image: postgres:16
     restart: always
@@ -10,6 +11,47 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    # Healthcheck : "démarré" ≠ "prêt à accepter des connexions".
+    # Les autres services attendront que ce test passe (service_healthy).
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cesizen -d cesizen"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Job de migration (tourne une fois puis s'arrête) ───────────
+  # Réutilise le stage `builder` du Dockerfile : lui SEUL possède la
+  # CLI Prisma + le schéma. L'image finale (runner) en est dépourvue.
+  migrate:
+    build:
+      context: .
+      target: builder
+    command: npx prisma migrate deploy
+    environment:
+      # Hôte = `db` : le nom du service, résolu par le DNS interne de Compose.
+      DATABASE_URL: postgresql://cesizen:cesizen@db:5432/cesizen
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ── Application Nuxt ───────────────────────────────────────────
+  app:
+    build:
+      context: .
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://cesizen:cesizen@db:5432/cesizen
+      # nuxt-auth-utils exige un secret de session (>= 32 caractères)
+      # pour chiffrer les cookies. Valeur de DEV uniquement.
+      NUXT_SESSION_PASSWORD: dev-session-secret-change-me-32chars!!
+    depends_on:
+      db:
+        condition: service_healthy
+      # L'app ne démarre qu'une fois le schéma déployé avec succès.
+      migrate:
+        condition: service_completed_successfully
 
 volumes:
   postgres_data:

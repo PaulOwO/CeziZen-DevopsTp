@@ -122,21 +122,31 @@ runs-on: self-hosted
 **Déclencheurs :** push ou PR vers `master` ou `develop`
 **Runner :** self-hosted (local)
 
-| Étape                     | Commande                          | Rôle                                                                                   |
-| ------------------------- | --------------------------------- | -------------------------------------------------------------------------------------- |
-| Checkout                  | `actions/checkout@v4`             | Récupère le code source.                                                               |
-| Node.js                   | `actions/setup-node@v4` (v22)     | Installe Node.js 22 LTS.                                                               |
-| Install                   | `npm ci`                          | Installe les dépendances de façon strictement reproductible depuis le lock file.       |
-| Lint                      | `npm run lint`                    | Analyse statique ESLint — échoue si des erreurs sont présentes.                        |
-| Build                     | `npm run build`                   | Compile le projet Nuxt — échoue si une erreur de compilation est présente.             |
-| Tests                     | `npm test -- --run`               | Lance les tests unitaires Vitest en mode one-shot (pas de watch).                      |
-| Start shadow database     | `docker run postgres:16`          | Démarre une base PostgreSQL jetable (port 5433, sans mot de passe) pour le garde-fou.  |
-| Check pending migrations  | `prisma migrate diff --exit-code` | Échoue si `schema.prisma` a des changements sans migration correspondante.             |
-| Generate migration script | `prisma migrate diff --script`    | Génère le SQL complet du schéma actuel sans toucher aucune base réelle.                |
-| Upload artifact           | `actions/upload-artifact@v4`      | Publie `migration.sql` comme artefact téléchargeable depuis GitHub Actions (30 jours). |
-| Stop shadow database      | `docker rm -f`                    | Détruit la base jetable (`if: always()`, même en cas d'échec précédent).               |
+| Étape                     | Commande                           | Rôle                                                                                        |
+| ------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------- |
+| Checkout                  | `actions/checkout@v4`              | Récupère le code source.                                                                    |
+| Node.js                   | `actions/setup-node@v4` (v22)      | Installe Node.js 22 LTS.                                                                    |
+| Install                   | `npm ci`                           | Installe les dépendances de façon strictement reproductible depuis le lock file.            |
+| Lint                      | `npm run lint`                     | Analyse statique ESLint — échoue si des erreurs sont présentes.                             |
+| Build                     | `npm run build`                    | Compile le projet Nuxt — échoue si une erreur de compilation est présente.                  |
+| Tests                     | `npm test -- --run`                | Lance les tests unitaires Vitest en mode one-shot (pas de watch).                           |
+| Start shadow database     | `docker run postgres:16`           | Démarre une base PostgreSQL jetable (port 5433, sans mot de passe) pour le garde-fou.       |
+| Check pending migrations  | `prisma migrate diff --exit-code`  | Échoue si `schema.prisma` a des changements sans migration correspondante.                  |
+| Generate migration script | `prisma migrate diff --script`     | Génère le SQL complet du schéma actuel sans toucher aucune base réelle.                     |
+| Upload artifact           | `actions/upload-artifact@v4`       | Publie `migration.sql` comme artefact téléchargeable depuis GitHub Actions (30 jours).      |
+| Stop shadow database      | `docker rm -f`                     | Détruit la base jetable (`if: always()`, même en cas d'échec précédent).                    |
+| Set image name            | (PowerShell)                       | Calcule `ghcr.io/<owner>/<repo>` en minuscules (exigence GHCR).                             |
+| Build Docker image        | `docker build`                     | Construit l'image « candidate » taguée `:<sha>`.                                            |
+| Smoke test image          | `docker run` + `Invoke-WebRequest` | Démarre l'image et exige un **HTTP 200** sur l'accueil — échoue sinon.                      |
+| Log in to GHCR            | `docker login --password-stdin`    | Connexion au registre (master uniquement) via `GITHUB_TOKEN`, jamais en clair.              |
+| Semantic release          | `npx semantic-release`             | Calcule la version depuis les commits, pose le tag Git + Release GitHub (master only).      |
+| Publish versioned image   | `docker tag` + `docker push`       | Pousse `:X.Y.Z` + `:latest` + `:<sha>` sur GHCR (master only, si une version est produite). |
 
 **Notes techniques :**
+
+- Les étapes Docker/release (build → smoke test → publication versionnée) sont détaillées dans [DOCKER_AND_RELEASE.md](DOCKER_AND_RELEASE.md).
+- Le `GITHUB_TOKEN` a besoin de `contents: write` + `packages: write` (bloc `permissions:` du workflow) ; côté GitHub, _Workflow permissions_ doit être sur « Read and write ».
+- `actions/checkout` utilise `fetch-depth: 0` : semantic-release exige l'historique complet + les tags.
 
 - **`defaults.run.shell: powershell`** — le runner est sous Windows ; les scripts multi-lignes sont écrits en PowerShell 5.1 (natif, toujours présent). `shell: bash` avait été tenté mais pointait vers WSL (cassé) au lieu de Git Bash.
 - **Shadow database** — Prisma exige une base jetable pour rejouer les migrations et détecter un drift. Elle est isolée de la base de dev (conteneur + port 5433 dédiés) et détruite en fin de job.

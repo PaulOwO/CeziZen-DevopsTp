@@ -57,3 +57,67 @@
 **Décision :** Le script `migration.sql` est déterministe mais non idempotent, et c'est documenté comme accepté.
 
 **Raison :** `prisma migrate diff --script` ne propose pas d'option idempotente (pas d'équivalent au `--idempotent` d'EF Core). Le SQL généré contient des `CREATE TABLE` bruts. Le TP demande l'idempotence « quand l'outil le permet » — ici l'outil ne le permet pas.
+
+---
+
+## Image Docker — build multi-stage
+
+**Décision :** Le `Dockerfile` utilise deux stages (`builder` puis `runner`), l'image finale ne récupérant que `.output/` + `prisma/`.
+
+**Raison :** Une app Nuxt a besoin des devDependencies et d'outils de compilation pour se builder, mais pas pour tourner. Un build mono-stage produirait une image ~800 MB–1 GB embarquant du code source et des outils inutiles. Le multi-stage descend à ~266 MB, réduit la surface d'attaque et accélère le push vers le registre.
+
+---
+
+## `.npmrc` copié dans l'image
+
+**Décision :** Le `Dockerfile` copie `.npmrc` en même temps que `package.json`/`package-lock.json`, avant `npm ci`.
+
+**Raison :** `.npmrc` contient `legacy-peer-deps=true`. Sans lui, `npm ci` échoue dans le conteneur (`ERESOLVE`) car `@gouvminint/vue-dsfr` attend `@iconify/vue` v4 alors que le projet est en v5. En local et en CI ça passe car npm lit le `.npmrc` du repo ; dans le build Docker, seules les couches explicitement copiées sont visibles — il faut donc le copier avant l'installation.
+
+---
+
+## Conteneur non-root (`USER node`)
+
+**Décision :** L'image bascule sur l'utilisateur non-privilégié `node` (fourni par l'image officielle) avant le `CMD`.
+
+**Raison :** Par défaut l'image `node` tourne en root (signalé par SonarLint, règle `docker:S6471`). Principe du moindre privilège : si l'app est compromise, l'attaquant n'obtient pas root dans le conteneur. L'app ne fait que servir sur le port 3000 (> 1024), aucun privilège élevé n'est nécessaire.
+
+---
+
+## Migration en job séparé dans Compose
+
+**Décision :** Le déploiement du schéma (`prisma migrate deploy`) est confié à un service `migrate` dédié qui réutilise le stage `builder`, et non à l'image `app`.
+
+**Raison :** L'image finale (`runner`) est volontairement dépourvue de la CLI Prisma (image légère). Seul le stage `builder` possède la CLI + le schéma. Le service `migrate` (`build.target: builder`) déploie le schéma une fois puis s'arrête ; `app` attend sa réussite (`service_completed_successfully`). C'est le pattern « init container » : migration = job distinct de l'exécution de l'app.
+
+---
+
+## Push GHCR — `GITHUB_TOKEN` plutôt qu'un secret manuel
+
+**Décision :** L'authentification au registre GHCR utilise le `GITHUB_TOKEN` d'Actions, via `--password-stdin`, plutôt qu'un Access Token stocké dans les secrets.
+
+**Raison :** Le `GITHUB_TOKEN` est éphémère, injecté automatiquement, et ses droits sont cadrés par le bloc `permissions:` du workflow (`packages: write`). Rien à créer ni à faire tourner manuellement, contrairement à un PAT ou un token Docker Hub. `--password-stdin` évite que le secret apparaisse dans les logs. Le registre choisi est GHCR car le repo est déjà sur GitHub (zéro compte externe).
+
+---
+
+## Versioning — semantic-release plutôt que tag Git manuel
+
+**Décision :** La version des images est calculée automatiquement par `semantic-release` à partir des commits conventionnels, et non posée manuellement (`git tag`).
+
+**Raison :** La suite du projet prévoit une CD déclenchée automatiquement sur chaque push `master`. Un versioning manuel serait incohérent avec un déploiement automatique (risque d'oubli, d'erreur de niveau). semantic-release exploite les commits conventionnels déjà imposés par commitlint (`feat`→MINOR, `fix`→PATCH, `BREAKING CHANGE`→MAJOR), pose le tag Git + la Release GitHub, et n'agit que sur `master`. La porte reste ouverte au tag manuel, mais l'automatisation colle au reste de la chaîne.
+
+---
+
+## Publication versionnée — lecture du tag Git plutôt que plugin exec
+
+**Décision :** Après `semantic-release`, une étape PowerShell lit le tag posé sur le commit (`git tag --points-at HEAD`) puis tague/pousse l'image ; on n'utilise pas `@semantic-release/exec` pour piloter Docker.
+
+**Raison :** `@semantic-release/exec` lance ses commandes via `cmd.exe` sur Windows (shell:true), ce qui casserait la syntaxe PowerShell (`${env:IMAGE}`) utilisée partout dans le pipeline. Garder la logique Docker en PowerShell explicite dans `ci.yml` la rend cohérente, lisible et débogable. L'image « candidate » est d'abord taguée `:<sha>` (pour le smoke test) ; `:latest` et `:X.Y.Z` ne sont posés qu'à la publication d'une vraie version — `latest` = « dernière version **publiée** », pas « dernier commit ».
+
+---
+
+## Checkout complet pour semantic-release (`fetch-depth: 0`)
+
+**Décision :** L'étape `actions/checkout` utilise `fetch-depth: 0`.
+
+**Raison :** `semantic-release` compare les commits depuis la dernière release et lit les tags existants. Le clone superficiel par défaut (`fetch-depth: 1`) ne fournit ni l'historique complet ni les tags, ce qui fausserait le calcul de version. `fetch-depth: 0` récupère tout l'historique + les tags.
