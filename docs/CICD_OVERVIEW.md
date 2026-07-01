@@ -138,7 +138,7 @@ runs-on: self-hosted
 
 **Notes techniques :**
 
-- **`defaults.run.shell: bash`** — le runner est sous Windows (PowerShell par défaut) ; on force Git Bash pour que la syntaxe des scripts (`if`, `\`, `wc`) fonctionne.
+- **`defaults.run.shell: powershell`** — le runner est sous Windows ; les scripts multi-lignes sont écrits en PowerShell 5.1 (natif, toujours présent). `shell: bash` avait été tenté mais pointait vers WSL (cassé) au lieu de Git Bash.
 - **Shadow database** — Prisma exige une base jetable pour rejouer les migrations et détecter un drift. Elle est isolée de la base de dev (conteneur + port 5433 dédiés) et détruite en fin de job.
 - SonarCloud n'est **pas** dans ce pipeline — il est déclenché automatiquement par la GitHub App SonarCloud sur chaque PR. Voir [decisions.md](decisions.md).
 

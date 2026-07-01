@@ -34,11 +34,13 @@
 
 ---
 
-## `shell: bash` sur le runner Windows
+## Shell des étapes CI — PowerShell (et non bash)
 
-**Décision :** Le job CI force `defaults.run.shell: bash`.
+**Décision :** Le job CI force `defaults.run.shell: powershell` ; les étapes multi-lignes sont écrites en PowerShell 5.1.
 
-**Raison :** Le runner self-hosted est sous Windows, où GitHub Actions utilise PowerShell par défaut. Les étapes multi-lignes (continuations `\`, `if [ ]`, `wc`, `seq`) sont en syntaxe bash et échoueraient sous PowerShell. Git Bash (déjà présent avec Git) est utilisé à la place.
+**Raison :** Le runner self-hosted est sous Windows. Une première tentative avec `shell: bash` a échoué : GitHub Actions a résolu `bash` vers **WSL** (non installé/cassé) au lieu de Git Bash — erreur `execvpe(/bin/bash) failed: No such file or directory`. Le chemin de Git Bash contient un espace (`C:\Program Files\Git\...`), mal géré par le shell custom de GitHub. PowerShell 5.1 est natif, toujours présent, sans ambiguïté de résolution.
+
+**Détail :** l'artefact `migration.sql` est écrit via `[System.IO.File]::WriteAllText` pour éviter le BOM UTF-8 que `Out-File`/`>` ajoutent en PowerShell 5.1.
 
 ---
 
