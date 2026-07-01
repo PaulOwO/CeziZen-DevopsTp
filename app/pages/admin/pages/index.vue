@@ -1,9 +1,9 @@
 <script setup lang="ts">
-definePageMeta({
-  middleware: 'admin'
-})
-
 import { generateSlug } from '~/utils/helpers'
+
+definePageMeta({
+  middleware: 'admin',
+})
 const { data: pages, refresh } = await useFetch('/api/pages/all')
 
 const showForm = ref(false)
@@ -63,7 +63,6 @@ async function handleSubmit() {
 
     showForm.value = false
     await refresh()
-
   } catch (e: any) {
     error.value = e.data?.message || 'Une erreur est survenue'
   } finally {
@@ -74,7 +73,7 @@ async function handleSubmit() {
 async function handleDelete(slug: string) {
   if (!confirm('Supprimer cette page ?')) return
 
- await $fetch(`/api/pages/${slug}`, { method: 'DELETE' as any })
+  await $fetch(`/api/pages/${slug}`, { method: 'DELETE' as any })
   await refresh()
 }
 </script>
@@ -106,20 +105,11 @@ async function handleDelete(slug: string) {
       </DsfrInputGroup>
 
       <DsfrInputGroup>
-        <DsfrInput
-          v-model="form.slug"
-          label="Slug (URL)"
-          label-visible
-        />
+        <DsfrInput v-model="form.slug" label="Slug (URL)" label-visible />
       </DsfrInputGroup>
 
       <DsfrInputGroup>
-        <DsfrInput
-          v-model="form.content"
-          label="Contenu"
-          label-visible
-          is-textarea
-        />
+        <DsfrInput v-model="form.content" label="Contenu" label-visible is-textarea />
       </DsfrInputGroup>
 
       <div class="fr-mt-3w">
