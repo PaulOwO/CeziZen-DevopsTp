@@ -10,6 +10,11 @@ jobs:
   ci:
     runs-on: self-hosted # ton runner local
 
+    # Force Git Bash pour toutes les étapes `run` (le runner Windows utilise PowerShell par défaut)
+    defaults:
+      run:
+        shell: bash
+
     steps:
       # 1. Récupère le code source
       - name: Checkout code
@@ -38,3 +43,66 @@ jobs:
       - name: Tests
         run: npm test -- --run # --run pour sortir après l'exécution (pas en watch mode)
 
+      # 7. Démarre une base PostgreSQL jetable (shadow database) pour le garde-fou.
+      #    Conteneur + port dédiés (5433) pour ne PAS interférer avec la base de dev (5432).
+      #    Auth `trust` (aucun mot de passe) : base sans données, détruite en fin de job.
+      #    La base `shadow` est créée vide automatiquement par l'image postgres.
+      - name: Start shadow database
+        run: |
+          docker rm -f prisma-shadow-db 2>/dev/null || true
+          docker run -d --name prisma-shadow-db \
+            -e POSTGRES_USER=shadow \
+            -e POSTGRES_DB=shadow \
+            -e POSTGRES_HOST_AUTH_METHOD=trust \
+            -p 5433:5432 postgres:16
+          for i in $(seq 1 20); do
+            if docker exec prisma-shadow-db pg_isready -U shadow >/dev/null 2>&1; then
+              echo "✅ shadow database prête"
+              break
+            fi
+            sleep 2
+          done
+
+      # 8. Garde-fou — échoue si schema.prisma a changé sans migration correspondante.
+      #    --exit-code : 0 = en sync, 2 = drift détecté, autre = erreur.
+      - name: Check pending migrations
+        run: |
+          npx prisma migrate diff \
+            --from-migrations ./prisma/migrations \
+            --to-schema-datamodel prisma/schema.prisma \
+            --shadow-database-url "postgresql://shadow@localhost:5433/shadow" \
+            --exit-code > /dev/null 2>&1
+          code=$?
+          if [ $code -eq 0 ]; then
+            echo "✅ Schema en sync avec les migrations"
+          elif [ $code -eq 2 ]; then
+            echo "❌ schema.prisma a des changements sans migration correspondante."
+            echo "   Lance 'npx prisma migrate dev --name <nom>' pour créer la migration."
+            exit 1
+          else
+            echo "⚠️ Erreur Prisma (code $code)"
+            exit $code
+          fi
+
+      # 9. Génère le script SQL complet du schéma actuel.
+      #    --from-empty : compare uniquement des fichiers, ne touche AUCUNE base.
+      - name: Generate migration script
+        run: |
+          npx prisma migrate diff \
+            --from-empty \
+            --to-schema-datamodel prisma/schema.prisma \
+            --script > migration.sql
+          echo "Script généré : $(wc -l < migration.sql) lignes"
+
+      # 10. Publie le script comme artefact récupérable dans GitHub Actions
+      - name: Upload migration artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-script
+          path: migration.sql
+          retention-days: 30
+
+      # 11. Nettoie la base jetable (même si une étape précédente a échoué)
+      - name: Stop shadow database
+        if: always()
+        run: docker rm -f prisma-shadow-db || true

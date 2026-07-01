@@ -122,16 +122,25 @@ runs-on: self-hosted
 **Déclencheurs :** push ou PR vers `master` ou `develop`
 **Runner :** self-hosted (local)
 
-| Étape    | Commande                      | Rôle                                                                             |
-| -------- | ----------------------------- | -------------------------------------------------------------------------------- |
-| Checkout | `actions/checkout@v4`         | Récupère le code source.                                                         |
-| Node.js  | `actions/setup-node@v4` (v22) | Installe Node.js 22 LTS.                                                         |
-| Install  | `npm ci`                      | Installe les dépendances de façon strictement reproductible depuis le lock file. |
-| Lint     | `npm run lint`                | Analyse statique ESLint — échoue si des erreurs sont présentes.                  |
-| Build    | `npm run build`               | Compile le projet Nuxt — échoue si une erreur de compilation est présente.       |
-| Tests    | `npm test -- --run`           | Lance les tests unitaires Vitest en mode one-shot (pas de watch).                |
+| Étape                     | Commande                          | Rôle                                                                                   |
+| ------------------------- | --------------------------------- | -------------------------------------------------------------------------------------- |
+| Checkout                  | `actions/checkout@v4`             | Récupère le code source.                                                               |
+| Node.js                   | `actions/setup-node@v4` (v22)     | Installe Node.js 22 LTS.                                                               |
+| Install                   | `npm ci`                          | Installe les dépendances de façon strictement reproductible depuis le lock file.       |
+| Lint                      | `npm run lint`                    | Analyse statique ESLint — échoue si des erreurs sont présentes.                        |
+| Build                     | `npm run build`                   | Compile le projet Nuxt — échoue si une erreur de compilation est présente.             |
+| Tests                     | `npm test -- --run`               | Lance les tests unitaires Vitest en mode one-shot (pas de watch).                      |
+| Start shadow database     | `docker run postgres:16`          | Démarre une base PostgreSQL jetable (port 5433, sans mot de passe) pour le garde-fou.  |
+| Check pending migrations  | `prisma migrate diff --exit-code` | Échoue si `schema.prisma` a des changements sans migration correspondante.             |
+| Generate migration script | `prisma migrate diff --script`    | Génère le SQL complet du schéma actuel sans toucher aucune base réelle.                |
+| Upload artifact           | `actions/upload-artifact@v4`      | Publie `migration.sql` comme artefact téléchargeable depuis GitHub Actions (30 jours). |
+| Stop shadow database      | `docker rm -f`                    | Détruit la base jetable (`if: always()`, même en cas d'échec précédent).               |
 
-> SonarCloud n'est **pas** dans ce pipeline — il est déclenché automatiquement par la GitHub App SonarCloud sur chaque PR. Voir [decisions.md](decisions.md).
+**Notes techniques :**
+
+- **`defaults.run.shell: bash`** — le runner est sous Windows (PowerShell par défaut) ; on force Git Bash pour que la syntaxe des scripts (`if`, `\`, `wc`) fonctionne.
+- **Shadow database** — Prisma exige une base jetable pour rejouer les migrations et détecter un drift. Elle est isolée de la base de dev (conteneur + port 5433 dédiés) et détruite en fin de job.
+- SonarCloud n'est **pas** dans ce pipeline — il est déclenché automatiquement par la GitHub App SonarCloud sur chaque PR. Voir [decisions.md](decisions.md).
 
 ---
 
@@ -176,7 +185,7 @@ Logique appliquée :
 
 ## 5. Analyse qualité — SonarCloud
 
-SonarCloud analyse automatiquement le code à chaque exécution du pipeline CI.
+SonarCloud analyse automatiquement chaque PR et chaque push sur `master`/`develop`, via la **GitHub App SonarCloud** (indépendante du pipeline `ci.yml`).
 
 | Paramètre         | Valeur                                                               |
 | ----------------- | -------------------------------------------------------------------- |
@@ -198,6 +207,13 @@ SonarCloud analyse automatiquement le code à chaque exécution du pipeline CI.
 Les faux positifs dans les fichiers de test (credentials de test, Math.random pour UUID) sont
 marqués `// NOSONAR` pour signaler qu'ils sont intentionnels et revus.
 
+### Security Hotspots
+
+Les Security Hotspots (ex. mot de passe dans une chaîne de connexion) doivent être **revus manuellement**
+dans SonarCloud et marqués « Safe » ou « Fixed ». La Quality Gate « Sonar Way » exige **100 % des hotspots
+revus** sur le nouveau code. Pour éviter ce point sur la base jetable du CI, celle-ci utilise l'authentification
+`trust` (aucun mot de passe) — il n'y a donc aucun secret en dur à revoir.
+
 ---
 
 ## 6. Protection des branches (GitHub Settings)
@@ -206,16 +222,16 @@ Configurée dans GitHub → Settings → Branches → Branch protection rules.
 
 Appliquée sur `master` et `develop` :
 
-| Règle                                        | Effet                                                                  |
-| -------------------------------------------- | ---------------------------------------------------------------------- |
-| Require a pull request before merging        | Interdit tout push direct — oblige à passer par une PR.                |
-| Require approvals (1 minimum)                | La PR doit être approuvée par au moins un autre membre avant le merge. |
-| Require status checks to pass                | Les checks suivants doivent être verts avant le merge.                 |
-| → `CI Pipeline / ci`                         | Le pipeline complet (install, lint, build, tests) doit passer.         |
-| → `Branch Name Check / Validate branch name` | Le nom de la branche source doit être valide.                          |
-| → `SonarCloud Code Analysis`                 | La Quality Gate SonarCloud doit être verte.                            |
-| Block force pushes                           | Interdit `git push --force` sur ces branches.                          |
-| Do not allow bypassing                       | Même les administrateurs sont soumis aux règles.                       |
+| Règle                                        | Effet                                                                      |
+| -------------------------------------------- | -------------------------------------------------------------------------- |
+| Require a pull request before merging        | Interdit tout push direct — oblige à passer par une PR.                    |
+| Require approvals (1 minimum)                | La PR doit être approuvée par au moins un autre membre avant le merge.     |
+| Require status checks to pass                | Les checks suivants doivent être verts avant le merge.                     |
+| → `CI Pipeline / ci`                         | Le pipeline complet (lint, build, tests, garde-fou migration) doit passer. |
+| → `Branch Name Check / Validate branch name` | Le nom de la branche source doit être valide.                              |
+| → `SonarCloud Code Analysis`                 | La Quality Gate SonarCloud doit être verte.                                |
+| Block force pushes                           | Interdit `git push --force` sur ces branches.                              |
+| Do not allow bypassing                       | Même les administrateurs sont soumis aux règles.                           |
 
 ---
 
@@ -234,11 +250,78 @@ Développeur
 └─ Pull Request (feature/* → develop ou develop → master)
      │
      ├─ branch-check.yml     → Nom de branche valide ?
-     ├─ ci.yml               → Install + Lint + Build + Tests + SonarCloud
+     ├─ ci.yml               → Install → Lint → Build → Tests
+     │                            → Garde-fou migration (schema en sync ?)
+     │                            → Génération migration.sql
+     │                            → Upload artifact
+     ├─ SonarCloud App       → Quality Gate (indépendant du CI)
      ├─ issue-triage.yml     → Labels automatiques
      │
      └─ Merge autorisé seulement si :
-          ✅ CI passée
+          ✅ CI passée (dont migrations en sync)
           ✅ Quality Gate verte
           ✅ 1 approbation
+
+CD (hors périmètre CI)
+└─ prisma migrate deploy    → Applique migration.sql sur staging/prod
+                               Déclenché manuellement, sous approbation
 ```
+
+## 7. Migrations de base de données — CI vs CD
+
+### Frontière CI / CD
+
+|                     | CI (ce pipeline)                        | CD (hors périmètre)         |
+| ------------------- | --------------------------------------- | --------------------------- |
+| Outil               | `prisma migrate diff`                   | `prisma migrate deploy`     |
+| Action              | Génère le SQL + vérifie la cohérence    | Applique le SQL sur la base |
+| Base réelle touchée | **Aucune**                              | Staging / Production        |
+| Déclencheur         | Automatique sur chaque PR               | Manuel, sous approbation    |
+| Artefact            | `migration.sql` téléchargeable 30 jours | —                           |
+
+**Règle fondamentale :** le pipeline CI ne doit jamais appliquer de migration sur une base réelle. Le script généré est une preuve de ce que le déploiement devra faire — pas une action automatique.
+
+### Deux notions à ne pas confondre
+
+|             | Fichiers de migration                     | Artefact `migration.sql`                              |
+| ----------- | ----------------------------------------- | ----------------------------------------------------- |
+| Emplacement | `prisma/migrations/` (versionné dans git) | Généré à chaque run (non versionné)                   |
+| Nature      | Incrémental — un dossier par changement   | Complet — tout le schéma depuis zéro (`--from-empty`) |
+| Créé par    | Le développeur (`prisma migrate dev`)     | Le pipeline CI                                        |
+
+Un commit qui ne touche pas le schéma n'ajoute aucune migration. Seul un **changement de schéma** en crée une.
+
+### Les deux commandes du pipeline
+
+```bash
+# Garde-fou : échoue si le schéma a changé sans migration (nécessite une shadow database)
+npx prisma migrate diff \
+  --from-migrations ./prisma/migrations \
+  --to-schema-datamodel prisma/schema.prisma \
+  --shadow-database-url "postgresql://shadow@localhost:5433/shadow" \
+  --exit-code            # 0 = en sync, 2 = drift détecté
+
+# Génération de l'artefact : compare uniquement des fichiers, aucune base requise
+npx prisma migrate diff \
+  --from-empty \
+  --to-schema-datamodel prisma/schema.prisma \
+  --script > migration.sql
+```
+
+### Pourquoi une shadow database ?
+
+`prisma migrate diff --from-migrations` doit **rejouer** les fichiers de migration pour calculer l'état
+résultant, ce qui exige une vraie base PostgreSQL. On utilise une base **jetable** (conteneur Docker dédié,
+port 5433, détruite en fin de job) — distincte de toute base réelle. La génération de l'artefact
+(`--from-empty`), elle, ne compare que des fichiers et ne nécessite aucune base.
+
+### Idempotence — limite de Prisma
+
+Le TP demande un script idempotent « quand l'outil le permet ». Prisma `migrate diff --script` produit un SQL
+**déterministe** (identique pour un même schéma) mais **non idempotent** : il génère des `CREATE TABLE` bruts,
+sans `IF NOT EXISTS`. Contrairement à EF Core (`--idempotent`), Prisma n'offre pas cette option. C'est une
+limite assumée de la stack.
+
+### Où récupérer l'artefact
+
+GitHub → onglet **Actions** → run du pipeline → section **Artifacts** en bas de page → `migration-script`.
