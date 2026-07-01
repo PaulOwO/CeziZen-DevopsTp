@@ -33,6 +33,9 @@
     "@nuxt/eslint": "^1.16.0",
     "@nuxt/test-utils": "^4.0.0",
     "@playwright/test": "^1.58.2",
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/github": "^12.0.8",
+    "@semantic-release/release-notes-generator": "^14.1.1",
     "@types/bcrypt": "^6.0.0",
     "@types/node": "^25.3.3",
     "@vue/test-utils": "^2.4.6",
@@ -41,6 +44,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.0.8",
     "prettier": "^3.9.4",
+    "semantic-release": "^25.0.5",
     "typescript": "^6.0.3",
     "vitest": "^4.0.18"
   }
