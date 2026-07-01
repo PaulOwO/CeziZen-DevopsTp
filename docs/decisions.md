@@ -44,6 +44,14 @@
 
 ---
 
+## Gestion des erreurs natives en PowerShell (`NativeCommandError`)
+
+**Décision :** Chaque étape PowerShell qui appelle un exécutable natif (docker, npx) commence par `$ErrorActionPreference = 'Continue'`, et l'existence d'un conteneur est vérifiée avant sa suppression (`docker ps -aq -f name=...`).
+
+**Raison :** GitHub Actions préfixe les scripts PowerShell avec `$ErrorActionPreference = 'Stop'`. En PowerShell 5.1, dès qu'un exécutable natif écrit sur stderr (ex. `docker rm` sur un conteneur inexistant au premier run), PowerShell lève une `NativeCommandError` **fatale** — et `2>$null` ne la supprime pas. Résultat : l'étape échouait avec `exit code 1` alors que la commande était anodine. Passer en `Continue` + tester l'existence avant suppression élimine le problème. Les codes de sortie réels sont ensuite gérés explicitement via `$LASTEXITCODE`.
+
+---
+
 ## Idempotence du script — limite de Prisma
 
 **Décision :** Le script `migration.sql` est déterministe mais non idempotent, et c'est documenté comme accepté.

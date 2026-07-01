@@ -50,22 +50,26 @@ jobs:
       #    La base `shadow` est créée vide automatiquement par l'image postgres.
       - name: Start shadow database
         run: |
-          docker rm -f prisma-shadow-db 2>$null
+          $ErrorActionPreference = 'Continue'
+          if (docker ps -aq -f name=prisma-shadow-db) { docker rm -f prisma-shadow-db | Out-Null }
           docker run -d --name prisma-shadow-db `
             -e POSTGRES_USER=shadow `
             -e POSTGRES_DB=shadow `
             -e POSTGRES_HOST_AUTH_METHOD=trust `
             -p 5433:5432 postgres:16
+          if ($LASTEXITCODE -ne 0) { Write-Host "Echec demarrage shadow database"; exit 1 }
           for ($i = 0; $i -lt 20; $i++) {
-            docker exec prisma-shadow-db pg_isready -U shadow *> $null
+            docker exec prisma-shadow-db pg_isready -U shadow | Out-Null
             if ($LASTEXITCODE -eq 0) { Write-Host "shadow database prete"; break }
             Start-Sleep -Seconds 2
           }
+          exit 0
 
       # 8. Garde-fou — échoue si schema.prisma a changé sans migration correspondante.
       #    --exit-code : 0 = en sync, 2 = drift détecté, autre = erreur.
       - name: Check pending migrations
         run: |
+          $ErrorActionPreference = 'Continue'
           npx prisma migrate diff `
             --from-migrations ./prisma/migrations `
             --to-schema-datamodel prisma/schema.prisma `
@@ -87,13 +91,16 @@ jobs:
       #    --from-empty : compare uniquement des fichiers, ne touche AUCUNE base.
       - name: Generate migration script
         run: |
+          $ErrorActionPreference = 'Continue'
           $sql = (npx prisma migrate diff `
             --from-empty `
             --to-schema-datamodel prisma/schema.prisma `
             --script | Out-String)
+          if ($LASTEXITCODE -ne 0) { Write-Host "Echec generation du script"; exit 1 }
           [System.IO.File]::WriteAllText("$($PWD.Path)\migration.sql", $sql)
           $lines = ($sql -split "`n").Count
           Write-Host "Script genere : $lines lignes"
+          exit 0
 
       # 10. Publie le script comme artefact récupérable dans GitHub Actions
       - name: Upload migration artifact
@@ -106,4 +113,7 @@ jobs:
       # 11. Nettoie la base jetable (même si une étape précédente a échoué)
       - name: Stop shadow database
         if: always()
-        run: docker rm -f prisma-shadow-db 2>$null; exit 0
+        run: |
+          $ErrorActionPreference = 'Continue'
+          if (docker ps -aq -f name=prisma-shadow-db) { docker rm -f prisma-shadow-db | Out-Null }
+          exit 0
