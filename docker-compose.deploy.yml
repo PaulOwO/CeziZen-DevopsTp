@@ -1,0 +1,34 @@
+# ─────────────────────────────────────────────────────────────────
+# Override de DÉPLOIEMENT (TP4 — CD local)
+# À COMBINER avec le compose de base (fusion des deux fichiers) :
+#   docker compose -f docker-compose.yml -f docker-compose.deploy.yml up -d
+#
+# Rôle : basculer de « build local » à « pull de l'image publiée ».
+# On déploie EXACTEMENT l'artefact testé et poussé en CI (reproductibilité),
+# au lieu de le reconstruire sur la machine cible.
+#
+# Ce fichier ne contient QUE les deltas : `db`, `volumes`, `ports`,
+# `depends_on`… restent hérités du docker-compose.yml de base.
+# ⚠️ Le base définit `build:` sur `app` et `migrate` ; un override ne peut
+#    pas SUPPRIMER cette clé, seulement en ajouter (`image:`). Les deux
+#    coexistent donc après fusion → on déploie avec `up -d --no-build`
+#    (voir le pipeline) pour interdire tout rebuild et n'utiliser QUE
+#    l'image tirée.
+#
+# TAG : version publiée par semantic-release (ex. 1.2.0), injectée par le
+#       pipeline. `:-latest` = valeur de repli pour un déploiement manuel.
+# ─────────────────────────────────────────────────────────────────
+services:
+  # Job de migration : MÊME image que l'app (choix 2B « migrations
+  # embarquées »). L'image publiée porte la CLI Prisma + ses moteurs.
+  migrate:
+    image: ghcr.io/paulowo/cezizen-devopstp:${TAG:-latest}
+    # On appelle le binaire Prisma par son chemin explicite plutôt que via
+    # `npx` : aucune tentative d'installation réseau, comportement déterministe.
+    # `migrate deploy` est idempotent (ne rejoue que les migrations en
+    # attente) et non destructif → rejouable sans risque pour les données.
+    command: ["node", "node_modules/prisma/build/index.js", "migrate", "deploy"]
+
+  # Application : l'image publiée démarre avec sa CMD par défaut (serveur Nuxt).
+  app:
+    image: ghcr.io/paulowo/cezizen-devopstp:${TAG:-latest}

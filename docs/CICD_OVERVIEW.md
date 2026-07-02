@@ -159,11 +159,21 @@ runs-on: self-hosted
 **Déclencheurs :** push (hors `master`, `develop`) et ouverture de PR
 **Runner :** ubuntu-latest (GitHub-hosted)
 
-Logique appliquée :
+Deux jobs :
+
+**`check-branch-name`** — valide le nom de la branche source :
 
 1. Les branches `main`, `master`, `develop` sont exemptées.
 2. Toute autre branche doit correspondre au format `<type>/<description>`.
 3. En cas d'échec, le message d'erreur indique les types autorisés.
+
+**`enforce-master-source`** — impose le flux `feature/* → develop → master` :
+
+- Ne s'exécute que sur les PR ciblant `master` (`github.base_ref == 'master'`).
+- Échoue si la branche source n'est pas `develop` (« develop strict » : `hotfix/*` et
+  `release/*` directs vers master sont donc bloqués).
+- À rendre **required** dans la protection de branche de `master` pour bloquer le merge.
+  Garantit que l'état publié depuis `master` a toujours été intégré/testé sur `develop`.
 
 ---
 
