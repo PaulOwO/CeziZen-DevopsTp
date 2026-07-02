@@ -5,6 +5,7 @@ Docker Compose, l'intégration Docker dans la CI, et le versioning sémantique d
 images publiées. Il couvre les quatre parties du TP « Conteneurisation & Release ».
 
 Voir aussi [CICD_OVERVIEW.md](CICD_OVERVIEW.md) (pipeline complet),
+[CD_DEPLOYMENT.md](CD_DEPLOYMENT.md) (déploiement continu local),
 [decisions.md](decisions.md) (justification des choix) et
 [NOTES_PEDAGOGIQUES.md](NOTES_PEDAGOGIQUES.md) (annexe éducative — le raisonnement pas à pas).
 
@@ -17,10 +18,10 @@ L'application (Nuxt 4 + Prisma + PostgreSQL) est packagée dans une image Docker
 
 ### Structure multi-stage
 
-| Stage         | Base             | Rôle                                                                    |
-| ------------- | ---------------- | ----------------------------------------------------------------------- |
-| **`builder`** | `node:22-alpine` | Installe toutes les dépendances, génère le client Prisma, `nuxt build`. |
-| **`runner`**  | `node:22-alpine` | Repart d'une image vierge, ne récupère que `.output/` + `prisma/`.      |
+| Stage         | Base             | Rôle                                                                        |
+| ------------- | ---------------- | --------------------------------------------------------------------------- |
+| **`builder`** | `node:22-alpine` | Installe toutes les dépendances, génère le client Prisma, `nuxt build`.     |
+| **`runner`**  | `node:22-alpine` | Repart d'une image vierge, récupère `.output/` + `prisma/` + la CLI Prisma. |
 
 Le stage `builder` est **jeté** à la fin : les devDependencies, le code source et
 les outils de compilation ne finissent pas dans l'image publiée.
@@ -96,10 +97,14 @@ DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGR
 
 ### Le job de migration séparé — pourquoi
 
-L'image finale (`runner`) est volontairement dépourvue de la CLI Prisma. Le service
-`migrate` réutilise donc le **stage `builder`** (`build.target: builder`), qui possède
-la CLI + le schéma. C'est le pattern « init container » : la migration est un **job
-distinct** de l'application, exécuté une fois avant le démarrage.
+En dev, le service `migrate` réutilise le **stage `builder`** (`build.target: builder`),
+qui possède la CLI Prisma + le schéma. C'est le pattern « init container » : la migration
+est un **job distinct** de l'application, exécuté une fois avant le démarrage.
+
+> **Pour le déploiement (CD)**, l'image finale embarque désormais la CLI Prisma (copiée
+> du `builder`) : le service `migrate` réutilise alors **l'image publiée** plutôt que le
+> stage `builder`, ce qui permet un déploiement « pull-only » sans build local. Voir
+> [CD_DEPLOYMENT.md](CD_DEPLOYMENT.md).
 
 ### Vérification
 
@@ -173,12 +178,15 @@ sur l'entrée standard (via Node), **jamais** en argument de commande visible da
 
 ```yaml
 - name: Log in to GHCR
-  uses: docker/login-action@v3
+  uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
   with:
     registry: ghcr.io
     username: ${{ github.actor }}
     password: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+> Les actions sont **épinglées à un SHA de commit** (avec un commentaire `# vX.Y.Z`),
+> non à un tag mutable, pour couper le risque _supply chain_. Voir [decisions.md](decisions.md).
 
 > **Prérequis GitHub** : _Settings → Actions → General → Workflow permissions_ doit être
 > sur **« Read and write permissions »**, sinon le `GITHUB_TOKEN` ne peut ni pousser le
@@ -279,10 +287,12 @@ docker pull ghcr.io/paulowo/cezizen-devopstp:1.3.0
 
 ## Récapitulatif des fichiers
 
-| Fichier                    | Rôle                                                            |
-| -------------------------- | --------------------------------------------------------------- |
-| `Dockerfile`               | Image multi-stage, non-root, client Prisma généré.              |
-| `.dockerignore`            | Exclut node_modules, artefacts, `.env` de l'image.              |
-| `docker-compose.yml`       | Orchestration db + migrate + app (une seule commande).          |
-| `.releaserc.json`          | Config semantic-release (branche master, 3 plugins).            |
-| `.github/workflows/ci.yml` | Build + smoke test + release + publication versionnée sur GHCR. |
+| Fichier                        | Rôle                                                                                                      |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| `Dockerfile`                   | Image multi-stage, non-root, client Prisma généré.                                                        |
+| `.dockerignore`                | Exclut node_modules, artefacts, `.env` de l'image.                                                        |
+| `docker-compose.yml`           | Orchestration db + migrate + app (une seule commande).                                                    |
+| `docker-compose.deploy.yml`    | Override de déploiement : `build` → `pull` de l'image publiée. Voir [CD_DEPLOYMENT.md](CD_DEPLOYMENT.md). |
+| `.releaserc.json`              | Config semantic-release (branche master, 3 plugins).                                                      |
+| `.github/workflows/ci.yml`     | Build + smoke test + release + publication GHCR + job `deploy` (CD).                                      |
+| `.github/workflows/deploy.yml` | Déploiement manuel à la demande (`workflow_dispatch`).                                                    |
