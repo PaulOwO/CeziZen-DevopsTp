@@ -1,0 +1,24 @@
+# Dépendances : on les réinstalle proprement DANS l'image avec `npm ci`.
+# Copier le node_modules de l'hôte (Windows) casserait les binaires natifs
+# (bcrypt, moteur Prisma) compilés pour Linux dans le conteneur.
+node_modules
+
+# Artefacts de build : regénérés dans l'image, inutile de les copier.
+.output
+.nuxt
+dist
+
+# Git & CI
+.git
+.github
+.gitignore
+
+# Env local & secrets : ne JAMAIS embarquer dans une image.
+.env
+.env.*
+
+# Divers
+*.log
+README.md
+.vscode
+.idea
