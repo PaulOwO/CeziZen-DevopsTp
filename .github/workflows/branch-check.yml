@@ -34,3 +34,20 @@ jobs:
           fi
 
           echo "✅ Nom de branche valide : '$branch'"
+
+  # Impose le flux feature/* → develop → master : une PR vers `master`
+  # ne peut venir QUE de `develop`. À rendre "required" dans la protection
+  # de branche de master pour bloquer tout autre merge.
+  enforce-master-source:
+    runs-on: ubuntu-latest
+    name: Enforce master PR source
+    if: github.event_name == 'pull_request' && github.base_ref == 'master'
+    steps:
+      - name: Only allow PRs from develop into master
+        run: |
+          if [ "$GITHUB_HEAD_REF" != "develop" ]; then
+            echo "❌ Une PR vers 'master' doit venir de 'develop' (source : '$GITHUB_HEAD_REF')"
+            echo "Flux imposé : feature/* → develop → master"
+            exit 1
+          fi
+          echo "✅ Source valide : develop → master"

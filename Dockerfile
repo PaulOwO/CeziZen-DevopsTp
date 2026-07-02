@@ -56,6 +56,22 @@ COPY --from=builder /app/.output ./.output
 # `prisma migrate deploy` au démarrage (déploiement du schéma en prod).
 COPY --from=builder /app/prisma ./prisma
 
+# ── Migrations embarquées (choix 2B) ────────────────────────────
+# L'image sait appliquer SES PROPRES migrations : le déploiement (TP4)
+# réutilise cette même image publiée pour jouer `prisma migrate deploy`,
+# sans dépendre d'un build local. On apporte donc la CLI Prisma + son
+# moteur (schema-engine), DÉJÀ téléchargés lors du `npm ci` du builder.
+#
+# Pourquoi copier plutôt que réinstaller ici ?
+#   - `npm ci` relancerait le postinstall du projet (`nuxt prepare`), qui
+#     échoue faute de code source dans ce stage minimal ;
+#   - `--ignore-scripts` éviterait ça MAIS empêcherait aussi le
+#     téléchargement du moteur Prisma → `migrate deploy` planterait.
+# On copie donc seulement `prisma` (la CLI) + `@prisma` (les moteurs) :
+# image auto-suffisante, sans tout node_modules ni outils de build.
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
 # Sécurité : on bascule sur l'utilisateur non-privilégié `node` fourni par
 # l'image (au lieu de root). Principe du moindre privilège : si l'app est
 # compromise, l'attaquant n'a pas les droits root dans le conteneur.

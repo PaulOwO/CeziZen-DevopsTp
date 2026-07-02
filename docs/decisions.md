@@ -129,3 +129,19 @@
 **Décision :** Les identifiants (`POSTGRES_PASSWORD`, `DATABASE_URL`, `NUXT_SESSION_PASSWORD`) ne sont plus en dur dans `docker-compose.yml` ; ils sont injectés via un fichier `.env` non versionné, avec un modèle `.env.example` versionné (sans secret réel).
 
 **Raison :** SonarCloud signalait un mot de passe PostgreSQL en dur (règle S2068, « Make sure this password gets changed and removed from the code ») sur les lignes `DATABASE_URL` et `POSTGRES_PASSWORD`. Compose charge automatiquement `.env`, donc `docker-compose.yml` ne contient plus que des références `${VAR}`. Le healthcheck utilise `$${POSTGRES_USER}` (le `$$` échappe l'interpolation Compose pour laisser le shell du conteneur résoudre la variable). `.env` est ignoré par git **et** par Docker (`.dockerignore`) : aucun secret ne part dans le dépôt ni dans l'image. Même logique que la shadow database du CI (auth `trust`), adaptée à une base persistante qui, elle, exige un mot de passe.
+
+---
+
+## Login GHCR — `docker/login-action` plutôt que `docker login` en PowerShell
+
+**Décision :** L'authentification à GHCR utilise l'action officielle `docker/login-action@v3`, et non un `$env:TOKEN | docker login ghcr.io --password-stdin` en PowerShell.
+
+**Raison :** La première version (pipe PowerShell) échouait avec `Error response from daemon: Get "https://ghcr.io/v2/": denied: denied` sur le runner Windows self-hosted, alors que les droits (`packages: write`, Workflow permissions « Read and write ») étaient corrects. En PowerShell 5.1, un pipe vers l'entrée standard d'un exécutable natif applique l'encodage console (UTF-16/BOM), ce qui peut corrompre le token en transit → rejet par le registre. `docker/login-action` écrit le token sur stdin en binaire (via Node) et gère le credential store de Docker Desktop, éliminant le problème.
+
+---
+
+## Flux vers master imposé — `develop → master` uniquement (status check)
+
+**Décision :** Un job `enforce-master-source` (dans `branch-check.yml`) échoue si une PR ciblant `master` ne vient pas de `develop`. Il est rendu _required_ dans la protection de branche de `master`.
+
+**Raison :** GitHub n'offre aucun réglage natif pour restreindre la branche source d'une PR. Or on veut garantir le flux `feature/* → develop → master` : ainsi l'état publié depuis `master` a toujours été intégré et testé sur `develop` au préalable (ce qui justifie que le re-test sur `master` soit un filet et non une nécessité). Le job ne se déclenche que sur les PR vers `master` (`github.base_ref == 'master'`) et vérifie `github.head_ref == 'develop'`. Rendu obligatoire, il bloque tout autre merge (y compris `hotfix/*` ou `release/*` directs vers master — choix « develop strict » assumé).
