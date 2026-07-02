@@ -173,12 +173,16 @@ jobs:
       # ────────────────────────────────────────────────────────────
 
       # 15. Connexion à GHCR — UNIQUEMENT sur push master (pas sur les PR).
-      #     Le token passe par --password-stdin : jamais visible dans les logs.
+      #     Action officielle : écrit le token sur stdin en binaire (via Node),
+      #     ce qui évite la corruption d'encodage du pipe PowerShell sur Windows
+      #     et gère le credential store de Docker Desktop.
       - name: Log in to GHCR
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: $env:GHCR_TOKEN | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       # 16. semantic-release : analyse les commits conventionnels depuis la
       #     derniere release, calcule la version (feat→MINOR, fix→PATCH,
