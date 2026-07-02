@@ -4,8 +4,9 @@ Ce document décrit la conteneurisation de l'application, son orchestration avec
 Docker Compose, l'intégration Docker dans la CI, et le versioning sémantique des
 images publiées. Il couvre les quatre parties du TP « Conteneurisation & Release ».
 
-Voir aussi [CICD_OVERVIEW.md](CICD_OVERVIEW.md) (pipeline complet) et
-[decisions.md](decisions.md) (justification des choix).
+Voir aussi [CICD_OVERVIEW.md](CICD_OVERVIEW.md) (pipeline complet),
+[decisions.md](decisions.md) (justification des choix) et
+[NOTES_PEDAGOGIQUES.md](NOTES_PEDAGOGIQUES.md) (annexe éducative — le raisonnement pas à pas).
 
 ---
 
@@ -167,16 +168,27 @@ permissions:
   pull-requests: write
 ```
 
-Le login se fait via `--password-stdin` : le token passe par l'entrée standard,
-**jamais** en argument de commande visible dans les logs.
+Le login utilise l'action officielle **`docker/login-action@v3`**, qui écrit le token
+sur l'entrée standard (via Node), **jamais** en argument de commande visible dans les logs :
 
-```powershell
-$env:GHCR_TOKEN | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+```yaml
+- name: Log in to GHCR
+  uses: docker/login-action@v3
+  with:
+    registry: ghcr.io
+    username: ${{ github.actor }}
+    password: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 > **Prérequis GitHub** : _Settings → Actions → General → Workflow permissions_ doit être
 > sur **« Read and write permissions »**, sinon le `GITHUB_TOKEN` ne peut ni pousser le
 > tag ni publier sur GHCR.
+
+> **Pourquoi l'action et non `docker login --password-stdin` en PowerShell ?** Sur un runner
+> Windows self-hosted, le pipe PowerShell (`$env:TOKEN | docker login … --password-stdin`)
+> peut corrompre l'encodage du token (UTF-16/BOM) → `denied: denied`. L'action officielle
+> écrit le token en binaire et gère le credential store de Docker Desktop. Voir
+> [decisions.md](decisions.md).
 
 ### Build & vérification à chaque run, publication conditionnelle
 
