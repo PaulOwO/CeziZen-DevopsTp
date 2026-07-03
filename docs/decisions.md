@@ -203,3 +203,11 @@
 **Décision :** `docker-compose.deploy.yml` déclare `name: cezizen-deploy`. Le déploiement tourne donc dans un projet Compose **distinct** du dev (`cezizen-devopstp`, nom du dossier), avec son propre volume `cezizen-deploy_postgres_data`.
 
 **Raison :** Sur le runner self-hosted, dev et déploiement partagent la même machine, le même démon Docker et le même dossier → par défaut, le **même nom de projet** donc le **même volume Postgres**. Or ils utilisent des identifiants différents (dev = `.env` local ; déploiement = GitHub Secrets). **PostgreSQL fige le mot de passe à la première création du volume** : le second stack à démarrer se voit refuser l'accès (`P1000: Authentication failed`) — panne réellement rencontrée au premier déploiement `v1.1.0`, le volume ayant été initialisé par un test local (mot de passe `cesizen`) avant que le déploiement CI (secret) ne tente de s'y connecter. Un `name:` distinct dans l'override sépare conteneurs et volume, sans modifier les workflows (le `name:` du dernier fichier fusionné l'emporte). Corollaire assumé : ne pas lancer les deux stacks simultanément (conflit de ports 3000/5432).
+
+---
+
+## Chaînes PowerShell en ASCII pur dans les blocs `run:`
+
+**Décision :** Les chaînes PowerShell **exécutées** dans les workflows (`Write-Host`, etc.) n'utilisent que de l'ASCII (tiret `-`, pas de `—` ni d'accents ni de flèches).
+
+**Raison :** GitHub Actions écrit le script inline d'un `run:` dans un fichier `.ps1` que PowerShell 5.1 lit dans un encodage qui **corrompt les caractères UTF-8 multi-octets**. Un caractère non-ASCII dans une chaîne peut casser le guillemet fermant → `TerminatorExpectedAtEndOfString` → le script ne parse pas → `exit 1`. Rencontré sur le smoke test du job `deploy` (le `—` de « Deploiement OK — application ») : le déploiement réussissait mais l'étape échouait à tort. Les **commentaires** (YAML hors `run:`, ou commentaires PowerShell) tolèrent les accents. Même famille de problème que le BOM (écriture de fichiers via `[System.IO.File]::WriteAllText`).
