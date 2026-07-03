@@ -1,7 +1,9 @@
 # Vue d'ensemble CI/CD & Automatisations
 
 Ce document décrit l'ensemble des mécanismes mis en place autour du code source :
-outils locaux, hooks Git, pipelines GitHub Actions, analyse de qualité et protection des branches.
+outils locaux, hooks Git, pipelines GitHub Actions, analyse de qualité, protection des
+branches et déploiement continu local. Le déploiement (CD) a son doc dédié :
+[CD_DEPLOYMENT.md](CD_DEPLOYMENT.md).
 
 ---
 
@@ -151,6 +153,36 @@ runs-on: self-hosted
 - **`defaults.run.shell: powershell`** — le runner est sous Windows ; les scripts multi-lignes sont écrits en PowerShell 5.1 (natif, toujours présent). `shell: bash` avait été tenté mais pointait vers WSL (cassé) au lieu de Git Bash.
 - **Shadow database** — Prisma exige une base jetable pour rejouer les migrations et détecter un drift. Elle est isolée de la base de dev (conteneur + port 5433 dédiés) et détruite en fin de job.
 - SonarCloud n'est **pas** dans ce pipeline — il est déclenché automatiquement par la GitHub App SonarCloud sur chaque PR. Voir [decisions.md](decisions.md).
+- **Actions épinglées à un SHA** — toutes les actions (`checkout`, `setup-node`, `upload-artifact`, `login-action`) sont épinglées à un SHA de commit immuable (`@<sha> # vX.Y.Z`) et non à un tag mutable, pour couper le risque _supply chain_ (Security Hotspot Sonar). Voir [decisions.md](decisions.md).
+- Le smoke test de l'image tourne sur le **port 3001** (et non 3000) : le job `deploy` laisse l'app déployée occuper le 3000 en permanence.
+
+### `ci.yml` — Job `deploy` (déploiement continu local)
+
+**Déclencheur :** push `master` **et** une version a été publiée (`needs.ci.outputs.version != ''`)
+**Runner :** self-hosted (local) — le déploiement a donc lieu sur cette machine.
+
+| Étape          | Rôle                                                                       |
+| -------------- | -------------------------------------------------------------------------- |
+| Checkout       | Récupère les fichiers compose (l'image vient de GHCR).                     |
+| Write .env     | Génère le `.env` depuis les **GitHub Secrets** (jamais versionné).         |
+| Log in to GHCR | `docker/login-action` — tire l'image (package privé).                      |
+| Deploy         | `docker compose … pull` puis `up -d --no-build` (migrate → app).           |
+| Smoke test     | Exige un **HTTP 200** sur `http://localhost:3000` (app déployée en ligne). |
+
+Le job `ci` **expose la version** (`outputs.version`) que `deploy` lit via `needs`.
+Détails complets dans [CD_DEPLOYMENT.md](CD_DEPLOYMENT.md).
+
+---
+
+### `deploy.yml` — Déploiement manuel à la demande
+
+**Déclencheur :** `workflow_dispatch` (bouton _Run workflow_) avec un input `tag`
+**Runner :** self-hosted (local)
+
+Redéploie le tag choisi (défaut `latest`) selon la même logique que le job auto
+(`pull` → `migrate` → `up -d` → smoke test). Utile pour les tests : rejouer un
+déploiement, vérifier l'idempotence, ou revenir à une version précise (rollback).
+Voir [CD_DEPLOYMENT.md](CD_DEPLOYMENT.md).
 
 ---
 
@@ -282,24 +314,25 @@ Développeur
           ✅ Quality Gate verte
           ✅ 1 approbation
 
-CD (hors périmètre CI)
-└─ prisma migrate deploy    → Applique migration.sql sur staging/prod
-                               Déclenché manuellement, sous approbation
+Merge dans master (push)
+└─ ci.yml (job ci)      → build + tests + release + publication image GHCR
+└─ ci.yml (job deploy)  → .env←secrets → pull → migrate deploy → up -d → smoke test
+                           Automatique, sur le runner local. Voir CD_DEPLOYMENT.md
 ```
 
 ## 7. Migrations de base de données — CI vs CD
 
 ### Frontière CI / CD
 
-|                     | CI (ce pipeline)                        | CD (hors périmètre)         |
-| ------------------- | --------------------------------------- | --------------------------- |
-| Outil               | `prisma migrate diff`                   | `prisma migrate deploy`     |
-| Action              | Génère le SQL + vérifie la cohérence    | Applique le SQL sur la base |
-| Base réelle touchée | **Aucune**                              | Staging / Production        |
-| Déclencheur         | Automatique sur chaque PR               | Manuel, sous approbation    |
-| Artefact            | `migration.sql` téléchargeable 30 jours | —                           |
+|                     | CI (job `ci`)                           | CD (job `deploy`)                                         |
+| ------------------- | --------------------------------------- | --------------------------------------------------------- |
+| Outil               | `prisma migrate diff`                   | `prisma migrate deploy`                                   |
+| Action              | Génère le SQL + vérifie la cohérence    | Applique les migrations versionnées                       |
+| Base réelle touchée | **Aucune**                              | Base de l'environnement déployé (local)                   |
+| Déclencheur         | Automatique sur chaque PR               | Automatique sur push `master` (+ manuel via `deploy.yml`) |
+| Artefact            | `migration.sql` téléchargeable 30 jours | —                                                         |
 
-**Règle fondamentale :** le pipeline CI ne doit jamais appliquer de migration sur une base réelle. Le script généré est une preuve de ce que le déploiement devra faire — pas une action automatique.
+**Règle fondamentale :** le job `ci` ne doit jamais appliquer de migration sur une base réelle — il ne fait que **générer** et **vérifier** (garde-fou). L'**application** relève du job `deploy` (CD), avec `prisma migrate deploy` (idempotent, non destructif). Voir [CD_DEPLOYMENT.md](CD_DEPLOYMENT.md).
 
 ### Deux notions à ne pas confondre
 

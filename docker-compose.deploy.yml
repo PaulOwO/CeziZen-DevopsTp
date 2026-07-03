@@ -17,7 +17,21 @@
 #
 # TAG : version publiée par semantic-release (ex. 1.2.0), injectée par le
 #       pipeline. `:-latest` = valeur de repli pour un déploiement manuel.
+#
+# ISOLATION dev ↔ déploiement (`name:`).
+#   Le dev (docker-compose.yml seul) utilise le projet par défaut
+#   `cezizen-devopstp` (nom du dossier). Le déploiement force un projet
+#   DISTINCT `cezizen-deploy` → ses conteneurs ET son volume sont séparés.
+#   Sans ça, dev et déploiement partagent le même volume Postgres alors
+#   qu'ils ont des mots de passe différents (dev = .env local, déploiement =
+#   GitHub Secrets) → « password authentication failed » (Postgres fige le
+#   mot de passe à la 1re création du volume). Ce `name:` du dernier fichier
+#   fusionné l'emporte, sans toucher aux workflows.
+#   ⚠️ Corollaire : ne pas lancer le stack dev ET le stack déploiement en
+#      même temps (ils se disputeraient les ports 3000/5432).
 # ─────────────────────────────────────────────────────────────────
+name: cezizen-deploy
+
 services:
   # Job de migration : MÊME image que l'app (choix 2B « migrations
   # embarquées »). L'image publiée porte la CLI Prisma + ses moteurs.
