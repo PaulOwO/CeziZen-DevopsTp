@@ -83,4 +83,4 @@ jobs:
             docker compose -f docker-compose.yml -f docker-compose.deploy.yml logs app
             Write-Host "ERREUR: l'app est injoignable apres deploiement"; exit 1
           }
-          Write-Host "Deploiement OK — application en ligne (HTTP 200)"
+          Write-Host "Deploiement OK - application en ligne (HTTP 200)"
