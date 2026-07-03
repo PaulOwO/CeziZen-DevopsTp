@@ -90,6 +90,8 @@
 
 **Raison :** L'image finale (`runner`) est volontairement dépourvue de la CLI Prisma (image légère). Seul le stage `builder` possède la CLI + le schéma. Le service `migrate` (`build.target: builder`) déploie le schéma une fois puis s'arrête ; `app` attend sa réussite (`service_completed_successfully`). C'est le pattern « init container » : migration = job distinct de l'exécution de l'app.
 
+> **Évolution (TP CD).** Ceci reste vrai pour le **dev** (base `docker-compose.yml`). Pour le **déploiement**, le service `migrate` réutilise l'image publiée (avec Prisma embarqué, cf. décision « Migrations embarquées dans l'image publiée ») au lieu du stage `builder`. Voir [CD_DEPLOYMENT.md](CD_DEPLOYMENT.md).
+
 ---
 
 ## Push GHCR — `GITHUB_TOKEN` plutôt qu'un secret manuel
@@ -145,3 +147,59 @@
 **Décision :** Un job `enforce-master-source` (dans `branch-check.yml`) échoue si une PR ciblant `master` ne vient pas de `develop`. Il est rendu _required_ dans la protection de branche de `master`.
 
 **Raison :** GitHub n'offre aucun réglage natif pour restreindre la branche source d'une PR. Or on veut garantir le flux `feature/* → develop → master` : ainsi l'état publié depuis `master` a toujours été intégré et testé sur `develop` au préalable (ce qui justifie que le re-test sur `master` soit un filet et non une nécessité). Le job ne se déclenche que sur les PR vers `master` (`github.base_ref == 'master'`) et vérifie `github.head_ref == 'develop'`. Rendu obligatoire, il bloque tout autre merge (y compris `hotfix/*` ou `release/*` directs vers master — choix « develop strict » assumé).
+
+---
+
+## Migrations embarquées dans l'image publiée (choix « 2B »)
+
+**Décision :** L'image finale (`runner`) embarque désormais la CLI Prisma + ses moteurs (copiés depuis le `builder`), pour qu'elle sache appliquer ses propres migrations. Le déploiement utilise donc **une seule image** — l'app et le service `migrate` partagent la même image publiée, seule la commande diffère.
+
+**Raison :** Le déploiement (CD) tire l'image publiée sans build local (reproductibilité). Or `migrate deploy` exige la CLI Prisma, absente du `runner` d'origine. Trois options envisagées : (A) le service `migrate` rebuild le stage `builder` — simple mais casse le « pull-only » ; (B) embarquer Prisma dans l'image publiée — image un peu plus lourde mais artefact auto-suffisant ; (C) rejouer le `.sql` du TP2 via `psql` — écarté car ce script (`--from-empty`) **n'est pas idempotent**. Choix **B** : le plus « production-grade » et reproductible. On **copie** `node_modules/prisma` + `@prisma` depuis le `builder` plutôt que `npm ci` (qui relancerait le postinstall `nuxt prepare`, cassé dans ce stage minimal) ou `--ignore-scripts` (qui empêcherait le téléchargement du moteur Prisma). Le binaire est appelé par son chemin explicite (`node node_modules/prisma/build/index.js`) pour éviter toute install réseau via `npx`.
+
+---
+
+## Override Compose pour le déploiement (`docker-compose.deploy.yml`)
+
+**Décision :** Un fichier d'override (`docker-compose.deploy.yml`) bascule `build:` → `image:` pour `app` et `migrate` ; le déploiement se fait via `docker compose -f docker-compose.yml -f docker-compose.deploy.yml pull` puis `up -d --no-build`.
+
+**Raison :** Le compose de dev **construit** l'image (pratique local) ; le déploiement doit **tirer l'image exacte** testée et publiée en CI (reproductibilité). Un override ne contient que les deltas (DRY, pas de duplication de `db`/`volumes`/`ports`). Subtilité : un override ne peut pas _supprimer_ le `build:` du base — il coexiste alors avec `image:`. `--no-build` interdit tout rebuild → on n'utilise que l'image tirée. Le tag est paramétré via `${TAG:-latest}` (version injectée par le pipeline, `latest` en repli manuel).
+
+---
+
+## Déploiement en job séparé (`deploy`) plutôt qu'étapes ajoutées
+
+**Décision :** Le déploiement automatique est un **job distinct** (`deploy`, `needs: ci`) dans `ci.yml`, et non des étapes ajoutées au job `ci`. Il expose la version publiée en sortie de job (`needs.ci.outputs.version`) et ne s'exécute que si une version a été produite.
+
+**Raison :** Séparer publication et déploiement clarifie la chaîne (`needs:` explicite) et permet de conditionner finement le deploy (`push master` **et** version non vide). Le job `ci` calcule la version via semantic-release ; la passer au job `deploy` se fait proprement par une sortie de job. Le smoke test _éphémère_ du job `ci` a été déplacé du port 3000 au **3001** : l'app déployée occupe le 3000 en permanence, un conteneur de test sur le même port entrerait en conflit.
+
+---
+
+## Déploiement manuel dans un workflow séparé (`deploy.yml`)
+
+**Décision :** Le redéploiement manuel (`workflow_dispatch` avec input `tag`) vit dans un fichier `deploy.yml` distinct, et non dans `ci.yml`.
+
+**Raison :** Le déploiement auto a besoin de la sortie `version` du job `ci` — trivial _dans_ le même workflow. Faire communiquer deux workflows différents pour se transmettre cette valeur (via `workflow_run` + artefact) est complexe et fragile. Séparer donne : auto dans `ci.yml` (avec la version sous la main), manuel autonome dans `deploy.yml` (tag saisi à la main). Léger doublon d'étapes assumé pour la lisibilité. Le manuel sert aux tests : rejouer un déploiement, vérifier l'idempotence, redéployer une version précise (rollback).
+
+---
+
+## Secrets de déploiement via GitHub Secrets, `.env` généré à la volée
+
+**Décision :** Les identifiants de l'environnement déployé sont stockés en **GitHub Secrets** ; le job de déploiement **génère le `.env`** à partir de ces secrets. Jamais dans git.
+
+**Raison :** Le runner checkout dans un dossier de travail neuf à chaque run — le `.env` local de la machine n'y est pas. Les secrets Actions (`POSTGRES_USER/PASSWORD/DB`, `NUXT_SESSION_PASSWORD`) sont écrits en `.env` au moment du déploiement (via `[System.IO.File]::WriteAllLines`, UTF-8 sans BOM), que Compose charge automatiquement. Aligné sur la bonne pratique (secrets injectés à la volée, portables) et cohérent avec l'externalisation `.env` déjà en place. PostgreSQL fige ces identifiants au premier démarrage (volume vide) : ils sont donc définitifs pour l'environnement, et distincts du `.env` de dev.
+
+---
+
+## Actions GitHub épinglées à un SHA de commit
+
+**Décision :** Les actions de `ci.yml` et `deploy.yml` sont épinglées à un **SHA de commit complet** (avec un commentaire `# vX.Y.Z` pour la lisibilité), au lieu d'un tag mutable `@vX`.
+
+**Raison :** SonarCloud signale un Security Hotspot sur les actions référencées par tag : un tag (`@v3`) est un pointeur **mutable** que le mainteneur — ou un attaquant qui compromet le dépôt de l'action — peut déplacer vers du code malveillant, exécuté ensuite avec les secrets du pipeline (risque _supply chain_). Un SHA est **immuable** : on exécute exactement le code audité. Le login GHCR utilise donc `docker/login-action@c94ce9f… # v3.7.0`. Compromis : plus sûr mais figé (plus de mises à jour auto) → à compléter par **Dependabot** (écosystème `github-actions`) qui ouvrira des PR de bump de SHA. Les workflows pré-existants non modifiés (`dependency-check.yml`, `issue-triage.yml`) restent à épingler.
+
+---
+
+## Isolation dev ↔ déploiement par nom de projet Compose
+
+**Décision :** `docker-compose.deploy.yml` déclare `name: cezizen-deploy`. Le déploiement tourne donc dans un projet Compose **distinct** du dev (`cezizen-devopstp`, nom du dossier), avec son propre volume `cezizen-deploy_postgres_data`.
+
+**Raison :** Sur le runner self-hosted, dev et déploiement partagent la même machine, le même démon Docker et le même dossier → par défaut, le **même nom de projet** donc le **même volume Postgres**. Or ils utilisent des identifiants différents (dev = `.env` local ; déploiement = GitHub Secrets). **PostgreSQL fige le mot de passe à la première création du volume** : le second stack à démarrer se voit refuser l'accès (`P1000: Authentication failed`) — panne réellement rencontrée au premier déploiement `v1.1.0`, le volume ayant été initialisé par un test local (mot de passe `cesizen`) avant que le déploiement CI (secret) ne tente de s'y connecter. Un `name:` distinct dans l'override sépare conteneurs et volume, sans modifier les workflows (le `name:` du dernier fichier fusionné l'emporte). Corollaire assumé : ne pas lancer les deux stacks simultanément (conflit de ports 3000/5432).
