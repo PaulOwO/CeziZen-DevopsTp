@@ -195,3 +195,11 @@
 **Décision :** Les actions de `ci.yml` et `deploy.yml` sont épinglées à un **SHA de commit complet** (avec un commentaire `# vX.Y.Z` pour la lisibilité), au lieu d'un tag mutable `@vX`.
 
 **Raison :** SonarCloud signale un Security Hotspot sur les actions référencées par tag : un tag (`@v3`) est un pointeur **mutable** que le mainteneur — ou un attaquant qui compromet le dépôt de l'action — peut déplacer vers du code malveillant, exécuté ensuite avec les secrets du pipeline (risque _supply chain_). Un SHA est **immuable** : on exécute exactement le code audité. Le login GHCR utilise donc `docker/login-action@c94ce9f… # v3.7.0`. Compromis : plus sûr mais figé (plus de mises à jour auto) → à compléter par **Dependabot** (écosystème `github-actions`) qui ouvrira des PR de bump de SHA. Les workflows pré-existants non modifiés (`dependency-check.yml`, `issue-triage.yml`) restent à épingler.
+
+---
+
+## Isolation dev ↔ déploiement par nom de projet Compose
+
+**Décision :** `docker-compose.deploy.yml` déclare `name: cezizen-deploy`. Le déploiement tourne donc dans un projet Compose **distinct** du dev (`cezizen-devopstp`, nom du dossier), avec son propre volume `cezizen-deploy_postgres_data`.
+
+**Raison :** Sur le runner self-hosted, dev et déploiement partagent la même machine, le même démon Docker et le même dossier → par défaut, le **même nom de projet** donc le **même volume Postgres**. Or ils utilisent des identifiants différents (dev = `.env` local ; déploiement = GitHub Secrets). **PostgreSQL fige le mot de passe à la première création du volume** : le second stack à démarrer se voit refuser l'accès (`P1000: Authentication failed`) — panne réellement rencontrée au premier déploiement `v1.1.0`, le volume ayant été initialisé par un test local (mot de passe `cesizen`) avant que le déploiement CI (secret) ne tente de s'y connecter. Un `name:` distinct dans l'override sépare conteneurs et volume, sans modifier les workflows (le `name:` du dernier fichier fusionné l'emporte). Corollaire assumé : ne pas lancer les deux stacks simultanément (conflit de ports 3000/5432).

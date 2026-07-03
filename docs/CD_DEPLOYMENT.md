@@ -67,6 +67,29 @@ services:
 > tire l'image, et `up -d --no-build` **interdit tout build** → on utilise strictement
 > l'image tirée.
 
+### Isolation dev ↔ déploiement (`name:`)
+
+L'override force un **nom de projet Compose distinct** :
+
+```yaml
+name: cezizen-deploy
+```
+
+| Contexte                                         | Projet             | Volume Postgres                  |
+| ------------------------------------------------ | ------------------ | -------------------------------- |
+| Dev (`docker-compose.yml` seul)                  | `cezizen-devopstp` | `cezizen-devopstp_postgres_data` |
+| Déploiement (base + `docker-compose.deploy.yml`) | `cezizen-deploy`   | `cezizen-deploy_postgres_data`   |
+
+**Pourquoi.** Sans ça, dev et déploiement (même machine, même démon Docker, même dossier)
+partagent le **même volume** alors qu'ils ont des mots de passe différents (dev = `.env`
+local ; déploiement = GitHub Secrets). Or **PostgreSQL fige le mot de passe à la première
+création du volume** → le second à démarrer se voit refuser l'accès
+(`P1000: Authentication failed`). Le `name:` du dernier fichier fusionné l'emporte, ce qui
+isole les deux stacks sans modifier les workflows.
+
+> ⚠️ Corollaire : ne pas lancer le stack **dev** ET le stack **déploiement** simultanément —
+> ils se disputeraient les ports 3000/5432.
+
 ---
 
 ## 3. Migrations embarquées dans l'image (choix « 2B »)
