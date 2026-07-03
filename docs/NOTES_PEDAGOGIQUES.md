@@ -208,3 +208,27 @@ déplacer vers du code différent, exécuté ensuite avec mes secrets. Un **SHA 
 ne reçois plus les mises à jour). La suite logique = **Dependabot** (écosystème
 `github-actions`), qui ouvrira des PR pour bumper les SHA automatiquement — sûreté **et**
 mises à jour. _(À ajouter dans un prochain complément.)_
+
+### Que se passe-t-il quand un déploiement échoue ?
+
+L'étape en erreur **arrête le job** (les étapes suivantes, dont le smoke test, sont
+sautées) et le run passe **rouge**. **Aucun rollback automatique** : GitHub ne connaît pas
+mes conteneurs. Docker reste dans l'**état partiel** du crash — d'où un risque de _downtime_
+si `up` a déjà recréé l'app sans qu'elle démarre. Pour repartir : **corriger la cause** puis
+relancer (Re-run failed jobs, `deploy.yml` manuel, ou nouveau commit). L'idempotence rend le
+relancer sans danger.
+
+### Retour d'expérience : l'incident du premier déploiement `v1.1.0`
+
+Deux pannes réelles, deux leçons :
+
+1. **`P1000: Authentication failed`.** Le volume Postgres avait été initialisé par un test
+   local (mot de passe `cesizen`) ; le déploiement CI utilisait le secret (autre mot de
+   passe). Postgres **fige le mot de passe à la création du volume** → refus. Corrigé en
+   **isolant** dev et déploiement dans des projets Compose distincts (`cezizen-deploy`).
+2. **Smoke test rouge alors que l'app tournait.** Un `—` (non-ASCII) dans un `Write-Host`
+   cassait le parsing du `.ps1` sur le runner Windows. Le **déploiement avait réussi**
+   (migrations OK, `HTTP 200`), seule l'étape de test plantait à tort. Corrigé en ASCII pur.
+
+Morale : sur un déploiement, distinguer « l'app est-elle réellement en ligne ? » (vérifiable
+via `docker ps` + `curl`) de « le pipeline est-il vert ? » — les deux peuvent diverger.
