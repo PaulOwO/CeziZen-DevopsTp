@@ -1,0 +1,58 @@
+# Dependabot — mises à jour automatiques des dépendances.
+# Ouvre des PR de bump que la CI valide avant tout merge (feature -> develop -> master).
+# Couvre les 3 écosystèmes du projet : npm, GitHub Actions (SHA épinglés), Docker.
+version: 2
+
+updates:
+  # 1) Dépendances npm de l'application.
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'Europe/Paris'
+    open-pull-requests-limit: 10
+    labels:
+      - 'technical-debt'
+      - 'dependencies'
+    commit-message:
+      prefix: 'chore'
+      include: 'scope'
+    # Regroupe les mises à jour mineures/patch pour limiter le bruit de PR.
+    groups:
+      minor-and-patch:
+        update-types:
+          - 'minor'
+          - 'patch'
+
+  # 2) Actions GitHub — indispensable puisqu'on épingle les actions à un SHA
+  #    immuable (sécurité supply-chain). Dependabot rouvre des PR pour bumper
+  #    ces SHA, ce qui redonne les mises à jour sans perdre l'immuabilité.
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'Europe/Paris'
+    labels:
+      - 'technical-debt'
+      - 'dependencies'
+    commit-message:
+      prefix: 'ci'
+
+  # 3) Image de base du Dockerfile (node:22-alpine) et postgres du compose.
+  - package-ecosystem: 'docker'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'Europe/Paris'
+    labels:
+      - 'technical-debt'
+      - 'dependencies'
+      - 'infra'
+    commit-message:
+      prefix: 'ci'

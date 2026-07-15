@@ -14,7 +14,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Label new issues
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         with:
           script: |
             const issue = context.payload.issue;
@@ -55,7 +55,7 @@ jobs:
     if: github.event.action == 'opened' && github.event_name == 'issues'
     steps:
       - name: Request priority classification
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         with:
           script: |
             const issueNumber = context.issue.number;
@@ -72,7 +72,7 @@ jobs:
       issues: write
     steps:
       - name: Close stale issues
-        uses: actions/stale@v9
+        uses: actions/stale@5bef64f19d7facfb25b37b414482c7164d639639 # v9.1.0
         with:
           days-before-issue-stale: 30
           days-before-issue-close: 60
