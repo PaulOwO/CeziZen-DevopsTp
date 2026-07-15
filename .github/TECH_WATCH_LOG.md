@@ -6,6 +6,7 @@
 
 ```markdown
 ### [DATE] - [TECHNOLOGY/VULNERABILITY]
+
 **Source** : [Lien vers source]  
 **Type** : [Security | Update | Opportunity | Risk]  
 **Sévérité/Impact** : [Critical | High | Medium | Low]  
@@ -22,6 +23,7 @@
 ## Entrées
 
 ### 2026-05-28 - Prisma Security Patch v5.12.x
+
 **Source** : https://github.com/prisma/prisma/releases  
 **Type** : Security  
 **Sévérité** : High  
@@ -35,6 +37,7 @@
 ---
 
 ### 2026-05-28 - Nuxt v3.14 Released
+
 **Source** : https://nuxt.com/blog  
 **Type** : Update  
 **Sévérité** : Medium  
@@ -48,6 +51,7 @@
 ---
 
 ### 2026-05-28 - Docker Node 22 LTS Available
+
 **Source** : https://hub.docker.com/_/node  
 **Type** : Update  
 **Sévérité** : Low  
@@ -56,11 +60,12 @@
 **Statut** : Open  
 **Assigné à** : [DevOps]  
 **Deadline** : 2026-09-01  
-**Notes** : Current: Node 20.x, test compatibility before upgrade
+**Notes** : Node 22 LTS déjà en place (CI + Dockerfile) ; suivre les correctifs de sécurité Node.
 
 ---
 
 ### 2026-05-28 - OWASP Top 10 2024 Update
+
 **Source** : https://owasp.org/www-project-top-ten/  
 **Type** : Opportunity  
 **Sévérité** : Medium  
@@ -91,5 +96,5 @@
 
 ---
 
-*Dernière mise à jour : 2026-05-28*  
-*Responsable : Tech Lead*
+_Dernière mise à jour : 2026-05-28_  
+_Responsable : Tech Lead_

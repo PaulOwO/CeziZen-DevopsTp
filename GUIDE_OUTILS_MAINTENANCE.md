@@ -1,9 +1,11 @@
 # Guide Complet: Outils de Maintenance CESIZen
+
 ## Comment utiliser, comprendre et expliquer les tools
 
 ---
 
 ## TABLE DES MATIÈRES
+
 1. Vue d'ensemble du système
 2. GitHub Issues - Gestion des tickets
 3. GitHub Project Board - Suivi du travail
@@ -53,13 +55,13 @@
 
 ### Qu'est-ce que chaque outil fait?
 
-| Outil | Rôle | Analogue réel |
-|-------|------|---------------|
-| **Issues** | Créer & gérer tickets | Un carnet de notes post-its |
-| **Projects** | Organiser & visualiser | Un tableau blanc avec colonnes |
-| **Actions** | Automatiser les tâches | Un robot qui travaille 24/7 |
-| **Labels** | Catégoriser & filtrer | Des autocollants de couleur |
-| **Milestones** | Grouper par sprint | Une phase du projet |
+| Outil          | Rôle                   | Analogue réel                  |
+| -------------- | ---------------------- | ------------------------------ |
+| **Issues**     | Créer & gérer tickets  | Un carnet de notes post-its    |
+| **Projects**   | Organiser & visualiser | Un tableau blanc avec colonnes |
+| **Actions**    | Automatiser les tâches | Un robot qui travaille 24/7    |
+| **Labels**     | Catégoriser & filtrer  | Des autocollants de couleur    |
+| **Milestones** | Grouper par sprint     | Une phase du projet            |
 
 ### Le flux complet
 
@@ -102,9 +104,11 @@ Une **Issue** = Un ticket = Une demande/problème
 **Types d'issues** (on en a créé 3 templates):
 
 #### Template 1: 🐛 Bug Report
+
 **Quand l'utiliser**: Un bug a été découvert
 
 **Exemple réel**:
+
 ```
 Titre: [BUG] Le bouton "Login" ne marche pas sur mobile
 
@@ -117,9 +121,11 @@ Sévérité: HAUTE
 ```
 
 #### Template 2: ✨ Feature Request
+
 **Quand l'utiliser**: On veut une nouvelle fonctionnalité
 
 **Exemple réel**:
+
 ```
 Titre: [FEATURE] Ajouter notification email
 
@@ -133,9 +139,11 @@ Critères d'acceptation:
 ```
 
 #### Template 3: 🔒 Security Incident
+
 **Quand l'utiliser**: Un problème de sécurité
 
 **Exemple réel**:
+
 ```
 Titre: [SECURITY] XSS vulnerability dans page profil
 
@@ -147,11 +155,13 @@ Description: Utilisateurs peuvent injecter du JS dans bio
 ### 2.2 Comment créer une Issue
 
 **Étape 1**: Aller sur GitHub → Issues tab
+
 ```
-https://github.com/cesizen/cesizen/issues
+https://github.com/PaulOwO/CeziZen-DevopsTp/issues
 ```
 
 **Étape 2**: Cliquer "New Issue"
+
 ```
 ┌────────────────────────────┐
 │  New Issue button (vert)   │
@@ -159,6 +169,7 @@ https://github.com/cesizen/cesizen/issues
 ```
 
 **Étape 3**: Choisir un template
+
 ```
 Vous verrez 3 options:
 - 🐛 Bug report
@@ -167,6 +178,7 @@ Vous verrez 3 options:
 ```
 
 **Étape 4**: Remplir le formulaire
+
 ```
 [Titre] : [BUG] Login button not working on mobile
 
@@ -211,6 +223,7 @@ Les labels sont des **catégories colorées** pour organiser les issues.
 ### 2.4 Comment ajouter un Label
 
 **Option 1**: Manuelle (après création)
+
 ```
 1. Ouvrir l'issue
 2. À droite: Section "Labels"
@@ -219,6 +232,7 @@ Les labels sont des **catégories colorées** pour organiser les issues.
 ```
 
 **Option 2**: Automatique (GitHub Actions)
+
 ```
 Notre workflow regarde le titre et ajoute auto:
 - Si titre contient "[BUG]" → Ajoute label "bug"
@@ -271,22 +285,24 @@ C'est comme un tableau blanc avec colonnes:
 
 ### 3.2 Les 5 colonnes expliquées
 
-| Colonne | Signification | Exemple d'issue |
-|---------|---------------|-----------------|
-| **BACKLOG** | Pas encore priorisée | Feature demandée l'année prochaine |
-| **TODO** | Priorisée, attend assignment | Bug à fixer ce sprint |
-| **IN PROGRESS** | Quelqu'un y travaille | "Je code le fix en ce moment" |
-| **IN REVIEW** | Code écrit, attend review | PR ouverte sur GitHub |
-| **DONE** | Terminée et déployée | "Merged en production" |
+| Colonne         | Signification                | Exemple d'issue                    |
+| --------------- | ---------------------------- | ---------------------------------- |
+| **BACKLOG**     | Pas encore priorisée         | Feature demandée l'année prochaine |
+| **TODO**        | Priorisée, attend assignment | Bug à fixer ce sprint              |
+| **IN PROGRESS** | Quelqu'un y travaille        | "Je code le fix en ce moment"      |
+| **IN REVIEW**   | Code écrit, attend review    | PR ouverte sur GitHub              |
+| **DONE**        | Terminée et déployée         | "Merged en production"             |
 
 ### 3.3 Comment utiliser le Board
 
 **Accéder au board**:
+
 ```
-https://github.com/cesizen/cesizen/projects
+https://github.com/PaulOwO/CeziZen-DevopsTp/projects
 ```
 
 **Voir le board**:
+
 ```
 Chaque issue = Une carte
 Chaque carte peut être:
@@ -296,6 +312,7 @@ Chaque carte peut être:
 ```
 
 **Exemple workflow réel**:
+
 ```
 Lundi matin:
 ├─ 5 nouvelles issues dans BACKLOG
@@ -323,6 +340,7 @@ Après code review:
 Nos workflows GitHub Actions automatisent certains mouvements:
 
 **Automation 1**: Création issue → Auto-add au board
+
 ```
 Dès qu'une issue est créée:
 ├─ GitHub Actions la détecte
@@ -331,6 +349,7 @@ Dès qu'une issue est créée:
 ```
 
 **Automation 2**: Pull Request ouvert → Colonne "IN REVIEW"
+
 ```
 Quand développeur ouvre PR:
 ├─ GitHub Actions détecte
@@ -339,6 +358,7 @@ Quand développeur ouvre PR:
 ```
 
 **Automation 3**: PR mergée → Colonne "DONE"
+
 ```
 Quand PR est mergée:
 ├─ GitHub Actions détecte
@@ -355,6 +375,7 @@ Quand PR est mergée:
 Une **GitHub Action = Un robot qui exécute des tâches automatiquement**
 
 **Analogie**: C'est comme avoir un assistant qui:
+
 - Vérifie le code chaque nuit
 - Signale les vulnérabilités
 - Catégorise automatiquement les tickets
@@ -362,6 +383,7 @@ Une **GitHub Action = Un robot qui exécute des tâches automatiquement**
 - Exécute les tests
 
 **Fonctionnement**:
+
 ```
 Événement déclencheur
         ↓
@@ -377,6 +399,7 @@ Résultat: rapport, notification, etc.
 **Fichier**: `.github/workflows/dependency-check.yml`
 
 **Quand ça s'exécute**:
+
 ```
 Chaque lundi à 9h00 du matin UTC
 (Automatiquement, même si personne ne fait rien)
@@ -385,6 +408,7 @@ Chaque lundi à 9h00 du matin UTC
 **Qu'est-ce que ça vérifie**:
 
 1. **NPM Audit** = Cherche les vulnérabilités dans les packages
+
 ```
 npm audit
 
@@ -393,6 +417,7 @@ Regarde: Avons-nous des packages obsolètes?
 ```
 
 2. **Outdated packages** = Cherche les mises à jour disponibles
+
 ```
 npm outdated
 
@@ -403,6 +428,7 @@ lodash       4.15.0   4.17.21 ← Mise à jour dispo
 ```
 
 3. **Security headers check** = Vérifie config de sécurité
+
 ```
 Cherche dans nuxt.config.ts:
 - Headers HTTPS?
@@ -411,22 +437,24 @@ Cherche dans nuxt.config.ts:
 ```
 
 **Résultat**:
+
 ```
 Si problèmes trouvés:
   → GitHub crée automatiquement une ISSUE
   → Label: "technical-debt"
   → Titre: "[Maintenance] Outdated dependencies detected"
-  
+
 Si pas de problèmes:
   → Rapport généré (téléchargeable)
   → Rien ne se passe
 ```
 
 **Où voir les résultats**:
+
 ```
 1. GitHub Actions tab
-   https://github.com/cesizen/cesizen/actions
-   
+   https://github.com/PaulOwO/CeziZen-DevopsTp/actions
+
 2. Chercher "Dependency Check & Audit"
 
 3. Cliquer sur la dernière exécution
@@ -439,6 +467,7 @@ Si pas de problèmes:
 **Fichier**: `.github/workflows/issue-triage.yml`
 
 **Quand ça s'exécute**:
+
 ```
 IMMÉDIATEMENT quand:
 - Une nouvelle issue est créée
@@ -464,6 +493,7 @@ Si titre = "[SECURITY] ..."
 ```
 
 **Exemple**:
+
 ```
 Vous créez issue avec titre:
 "[BUG] Login button not working"
@@ -524,6 +554,7 @@ Exception: N'y touche pas si label:
 ```
 
 **Exemple d'affichage**:
+
 ```
 ✅ Tests passed
 ❌ Security check failed
@@ -540,8 +571,9 @@ Suivons un bug du signalement à la résolution:
 ### Jour 1: Un utilisateur signale un bug
 
 **Utilisateur fait**:
+
 ```
-Va sur: https://github.com/cesizen/cesizen/issues
+Va sur: https://github.com/PaulOwO/CeziZen-DevopsTp/issues
 Clique: New Issue
 Choisit: Bug report template
 Remplit:
@@ -572,6 +604,7 @@ GitHub Actions détecte la nouvelle issue:
 ### Jour 2: Product Owner fait le triage
 
 **Product Owner fait**:
+
 ```
 1. Ouvre issue #247
 2. Lit description complète
@@ -585,7 +618,8 @@ GitHub Actions détecte la nouvelle issue:
 7. Glisse le card de BACKLOG → TODO au Project board
 ```
 
-**Résultat**: 
+**Résultat**:
+
 ```
 Issue #247 est maintenant:
 ├─ Labels: bug, critical, breathing
@@ -599,6 +633,7 @@ Alice reçoit notification: "Tu as une issue assignée"
 ### Jour 3: Developer Alice commence
 
 **Alice fait**:
+
 ```
 1. Ouvre issue #247
 2. Lit tous les détails
@@ -609,7 +644,8 @@ Alice reçoit notification: "Tu as une issue assignée"
 6. Au Project board: Glisse card de TODO → IN PROGRESS
 ```
 
-**Résultat**: 
+**Résultat**:
+
 ```
 Card dans IN PROGRESS au board
 Montre que Alice y travaille
@@ -620,6 +656,7 @@ Alice code pendant 4 heures...
 ### Jour 4: Fix terminé - Alice crée Pull Request
 
 **Alice fait**:
+
 ```
 1. Code du fix écrit et testé localement ✓
 2. Commit: "Fix: breathing timer not resetting (#247)"
@@ -631,6 +668,7 @@ Alice code pendant 4 heures...
 ```
 
 **Ce qui se passe auto**:
+
 ```
 GitHub Actions détecte la PR:
 
@@ -642,6 +680,7 @@ GitHub Actions détecte la PR:
 ```
 
 **Résultat**:
+
 ```
 Pull Request #248 créée
 Card #247 dans IN REVIEW
@@ -651,6 +690,7 @@ Attend review de Bob
 ### Jour 5: Code Review & Merge
 
 **Bob (reviewer) fait**:
+
 ```
 1. Ouvre Pull Request #248
 2. Lit le code ligne par ligne
@@ -665,6 +705,7 @@ Une fois approuvé:
 ```
 
 **Ce qui se passe auto**:
+
 ```
 GitHub Actions détecte le merge:
 
@@ -683,7 +724,8 @@ Si problème ❌:
 4. Envoie erreur à Alice
 ```
 
-**Résultat**: 
+**Résultat**:
+
 ```
 PR mergée en branche main ✓
 Issue #247 fermée ✓
@@ -693,6 +735,7 @@ Tout le monde a une notification
 ### Jour 6: Déploiement en production
 
 **DevOps fait**:
+
 ```
 1. Prépare une release (v1.2.0)
 2. Inclut PR #248
@@ -701,6 +744,7 @@ Tout le monde a une notification
 ```
 
 **Résultat final**:
+
 ```
 ✅ Bug résolu en production
 ✅ Utilisateur qui l'a signalé peut vérifier
@@ -715,6 +759,7 @@ Tout le monde a une notification
 ### 6.1 Lors de la création d'une issue
 
 ✅ **À FAIRE**:
+
 ```
 - Titre clair et spécifique
   BON: "[BUG] Login button not clickable on mobile"
@@ -722,18 +767,19 @@ Tout le monde a une notification
 
 - Template approprié
   Utiliser bug_report.md pour bugs!
-  
+
 - Description détaillée avec steps
   Inclure: quoi, quand, où, résultat attendu
-  
+
 - Chercher avant (pas de duplicates)
   Peut-être quelqu'un a déjà signalé
-  
+
 - Une issue = Une problème
   Ne mélanger bug + feature dans même issue
 ```
 
 ❌ **À ÉVITER**:
+
 ```
 - Titre générique vague
 - Pas de détails
@@ -745,6 +791,7 @@ Tout le monde a une notification
 ### 6.2 Lors du triage (Product Owner)
 
 ✅ **À FAIRE**:
+
 ```
 - Ajouter les labels appropriés
 - Assigner à quelqu'un
@@ -754,6 +801,7 @@ Tout le monde a une notification
 ```
 
 ❌ **À ÉVITER**:
+
 ```
 - Laisser "BACKLOG" indéfiniment
 - Assigner sans parler à la personne
@@ -764,20 +812,22 @@ Tout le monde a une notification
 ### 6.3 Lors du développement
 
 ✅ **À FAIRE**:
+
 ```
 - Glisser card en IN PROGRESS
 - Branche avec nom explicite:
   fix/issue-title-#123
   feature/user-auth-#124
-  
+
 - Message commit clair:
   "Fix: breathing timer not resetting #247"
-  
+
 - Glisser en IN REVIEW quand PR créée
 - Répondre aux commentaires promptement
 ```
 
 ❌ **À ÉVITER**:
+
 ```
 - Committer sans branche
 - Pas de lien vers issue
@@ -788,6 +838,7 @@ Tout le monde a une notification
 ### 6.4 Pour la tech watch / Monitoring
 
 ✅ **À FAIRE**:
+
 ```
 - Vérifier TECH_WATCH_LOG.md hebdo
 - Réagir aux alertes Dependabot (24h max)
@@ -796,6 +847,7 @@ Tout le monde a une notification
 ```
 
 ❌ **À ÉVITER**:
+
 ```
 - Ignorer les alertes sécurité
 - Mettre à jour sans tester
@@ -809,6 +861,7 @@ Tout le monde a une notification
 ### Q1: Comment je cherche une issue existante?
 
 **Réponse**:
+
 ```
 Option 1: Utilisez la barre de recherche
 - Haut de la page Issues
@@ -820,22 +873,23 @@ Option 2: Filtrez les labels
 - Voit toutes les issues avec ce label
 
 Option 3: GitHub search avancé
-https://github.com/cesizen/cesizen/issues?q=breathing+timer
+https://github.com/PaulOwO/CeziZen-DevopsTp/issues?q=breathing+timer
 ```
 
 ### Q2: Une issue n'a pas reçu de label auto, pourquoi?
 
 **Réponse**:
+
 ```
 Causes possibles:
 
 1. Titre mal formaté
    BON: "[BUG] Something broke"
    MAUVAIS: "BUG: Something broke" (pas de crochets!)
-   
+
 2. Action n'a pas encore tourné
    Attendre 1-2 minutes
-   
+
 3. Droits insuffisants
    Actions ne peut pas modifier si l'issue vient d'un fork
 
@@ -846,6 +900,7 @@ Causes possibles:
 ### Q3: Comment j'ajoute un label manuellement?
 
 **Réponse**:
+
 ```
 1. Ouvrir l'issue
 2. À droite, section "Labels"
@@ -856,6 +911,7 @@ Causes possibles:
 ### Q4: Comment on archive une issue vieille?
 
 **Réponse**:
+
 ```
 Option 1: Fermer l'issue (manuellement)
 - Bouton "Close issue" en bas
@@ -864,15 +920,16 @@ Option 2: Elle se ferme auto (60 jours stale)
 - Sauf si label: critical, bug, security, blocked
 
 Option 3: Filtrer par "closed"
-https://github.com/cesizen/cesizen/issues?q=is%3Aclosed
+https://github.com/PaulOwO/CeziZen-DevopsTp/issues?q=is%3Aclosed
 ```
 
 ### Q5: Comment voir qui travaille sur quoi?
 
 **Réponse**:
+
 ```
 Option 1: Project Board
-- https://github.com/cesizen/cesizen/projects
+- https://github.com/PaulOwO/CeziZen-DevopsTp/projects
 - Voir IN PROGRESS column
 
 Option 2: Filter by assignee
@@ -888,6 +945,7 @@ Option 3: Milestone view
 ### Q6: Comment j'ajoute une issue à un milestone (sprint)?
 
 **Réponse**:
+
 ```
 1. Ouvrir l'issue
 2. À droite, section "Milestone"
@@ -899,6 +957,7 @@ Option 3: Milestone view
 ### Q7: Comment on crée un nouveau milestone?
 
 **Réponse**:
+
 ```
 1. Aller sur Issues page
 2. Haut à droite: "Milestones"
@@ -912,6 +971,7 @@ Option 3: Milestone view
 ### Q8: Qu'est-ce que ça veut dire "Dependabot alert"?
 
 **Réponse**:
+
 ```
 Dependabot = Bot de GitHub qui surveille les vulnérabilités
 
@@ -931,6 +991,7 @@ Sévérité:
 ### Q9: Comment voir les logs d'une GitHub Action?
 
 **Réponse**:
+
 ```
 1. Aller sur: Actions tab
 2. Cliquer le workflow que tu veux
@@ -939,13 +1000,14 @@ Sévérité:
 5. Chaque étape montre:
    ✓ Réussi
    ✗ Erreur
-   
+
 Utile pour debug si quelque chose ne marche pas.
 ```
 
 ### Q10: Je veux désactiver une GitHub Action?
 
 **Réponse**:
+
 ```
 Option 1: Directement dans GitHub UI
 - Actions tab
@@ -973,6 +1035,7 @@ Exemple:
 Si on te demande d'expliquer le système à l'oral:
 
 ### Structure (Elevator pitch):
+
 ```
 "CESIZen utilise GitHub pour gérer la maintenance via 3 outils:
 
@@ -1011,6 +1074,7 @@ pour que l'équipe se concentre sur le développement"
 ## DOCUMENTS DE RÉFÉRENCE
 
 Voir aussi:
+
 1. `docs/MAINTENANCE_PLAN.md` - Guide complet maintenance
 2. `docs/TECH_WATCH_STRATEGY.md` - Stratégie veille
 3. `.github/workflows/` - Les actions réelles

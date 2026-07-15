@@ -15,6 +15,7 @@ Assurer la pérennité et la compétitivité de CESIZen en restant informé des 
 
 **Fréquence** : Quotidienne  
 **Sources** :
+
 - [Dependabot (GitHub)](https://docs.github.com/en/code-security/dependabot) - Scan automatique des dépendances
 - [OWASP](https://owasp.org/) - Top 10 des vulnérabilités web
 - [CVE Database](https://cve.mitre.org/) - Base de données des vulnérabilités
@@ -22,6 +23,7 @@ Assurer la pérennité et la compétitivité de CESIZen en restant informé des 
 - [Prisma Security Advisories](https://prisma.io/docs/reference/tools-and-interfaces/prisma-client/working-with-prismaclient/vulnerability-management)
 
 **Action** :
+
 - Alertes Dependabot automatiques → Fix automatique ou PR de révision
 - Revue mensuelle des CVEs applicables
 - Test de pénétration trimestriel
@@ -30,6 +32,7 @@ Assurer la pérennité et la compétitivité de CESIZen en restant informé des 
 
 **Fréquence** : Hebdomadaire  
 **Sources** :
+
 - [Nuxt Blog](https://nuxt.com/blog) - Annonces Nuxt
 - [Vue.js Releases](https://github.com/vuejs/core/releases) - Versions Vue
 - [npm Trends](https://www.npmtrends.com/) - Tendances packages
@@ -37,11 +40,14 @@ Assurer la pérennité et la compétitivité de CESIZen en restant informé des 
 - Discord Nuxt Community
 
 **Versions Actuelles** :
-- Nuxt : v3.x (Latest)
-- Vue : v3.x (Latest)
-- TypeScript : Latest LTS
+
+- Nuxt : v4.x
+- Vue : v3.5.x
+- Node.js : v22 LTS
+- TypeScript : v6.x
 
 **Stratégie de Mise à Jour** :
+
 - Updates mineures : Déploiement automatique après tests
 - Updates majeures : Évaluation de 2-4 semaines avant déploiement
 - Testing complet sur chaque mise à jour
@@ -50,11 +56,13 @@ Assurer la pérennité et la compétitivité de CESIZen en restant informé des 
 
 **Fréquence** : Hebdomadaire  
 **Sources** :
+
 - [Prisma Releases](https://github.com/prisma/prisma/releases)
 - [PostgreSQL News](https://www.postgresql.org/about/news/)
 - [Prisma Docs](https://prisma.io/docs/)
 
 **Monitoring** :
+
 - Mises à jour Prisma (critiques et de sécurité)
 - Migration vers PostgreSQL v16+ si pertinent
 - Performance optimization tips
@@ -63,11 +71,13 @@ Assurer la pérennité et la compétitivité de CESIZen en restant informé des 
 
 **Fréquence** : Mensuelle  
 **Sources** :
+
 - [Vitest Documentation](https://vitest.dev/)
 - [Playwright Updates](https://github.com/microsoft/playwright/releases)
 - [Testing Library Best Practices](https://testing-library.com/)
 
 **Focus** :
+
 - Couverture de tests
 - Performance des tests
 - Nouvelles fonctionnalités de test
@@ -76,11 +86,13 @@ Assurer la pérennité et la compétitivité de CESIZen en restant informé des 
 
 **Fréquence** : Hebdomadaire  
 **Sources** :
+
 - [Docker Hub Official Images](https://hub.docker.com/search?q=&type=image)
 - [GitHub Actions Blog](https://github.blog/tag/actions/)
 - [Docker Security Best Practices](https://docs.docker.com/develop/security-best-practices/)
 
 **Focus** :
+
 - Mises à jour images Docker (Node, PostgreSQL)
 - Nouvelles actions GitHub utiles
 - Sécurité des containers
@@ -89,11 +101,13 @@ Assurer la pérennité et la compétitivité de CESIZen en restant informé des 
 
 **Fréquence** : Hebdomadaire  
 **Sources** :
+
 - [Web Vitals](https://web.dev/vitals/)
 - [Nuxt Performance](https://nuxt.com/docs/guide/concepts/rendering)
 - [JavaScript Performance](https://developer.mozilla.org/en-US/docs/Web/Performance)
 
 **Métriques Tracking** :
+
 - Core Web Vitals
 - Temps de build
 - Bundle size
@@ -119,13 +133,13 @@ Assurer la pérennité et la compétitivité de CESIZen en restant informé des 
 
 ### 3.2 Outils de Veille
 
-| Outil | Domaine | Fréquence | Coût |
-|-------|---------|-----------|------|
-| **Dependabot** | Vulnérabilités deps | Auto | Gratuit (GitHub) |
-| **GitHub Security Alerts** | Sécurité repo | Auto | Gratuit |
-| **npm Audit** | Packages JS | Hebdo | Gratuit |
-| **OWASP Newsletters** | Sécurité général | Mensuelle | Gratuit |
-| **Snyk** | Vulnérabilités avancées | Auto | Freemium |
+| Outil                      | Domaine                 | Fréquence | Coût             |
+| -------------------------- | ----------------------- | --------- | ---------------- |
+| **Dependabot**             | Vulnérabilités deps     | Auto      | Gratuit (GitHub) |
+| **GitHub Security Alerts** | Sécurité repo           | Auto      | Gratuit          |
+| **npm Audit**              | Packages JS             | Hebdo     | Gratuit          |
+| **OWASP Newsletters**      | Sécurité général        | Mensuelle | Gratuit          |
+| **Snyk**                   | Vulnérabilités avancées | Auto      | Freemium         |
 
 ### 3.3 Responsabilités
 
@@ -170,6 +184,7 @@ graph TD
 Fichier : [.github/TECH_WATCH_LOG.md](../.github/TECH_WATCH_LOG.md)
 
 Contient :
+
 - Date de découverte
 - Technology/Vulnerability
 - Source
@@ -181,6 +196,7 @@ Contient :
 
 **Distribution** : Équipe dev, Management  
 **Contenu** :
+
 - Vulnérabilités découvertes
 - Mises à jour planifiées
 - Risques identifiés
@@ -190,6 +206,7 @@ Contient :
 
 **Participants** : Tech Lead, Dev Team, Security Officer, Product Owner  
 **Ordre du jour** :
+
 1. Synthèse des 3 derniers mois
 2. Évolutions majeures à considérer
 3. Risques non-adressés
@@ -199,35 +216,35 @@ Contient :
 
 ### 6.1 Nouvelle Dépendance/Library
 
-| Critère | Score |
-|---------|-------|
-| Communauté active (stars, issues, contributeurs) | 20% |
-| Documentation complète et à jour | 20% |
-| Sécurité (audit, vulnérabilités, licensing) | 25% |
-| Performance et impact bundle size | 15% |
-| Maintenance à long terme | 20% |
+| Critère                                          | Score |
+| ------------------------------------------------ | ----- |
+| Communauté active (stars, issues, contributeurs) | 20%   |
+| Documentation complète et à jour                 | 20%   |
+| Sécurité (audit, vulnérabilités, licensing)      | 25%   |
+| Performance et impact bundle size                | 15%   |
+| Maintenance à long terme                         | 20%   |
 
 **Seuil d'acceptation** : > 70%
 
 ### 6.2 Mise à Jour Majeure
 
-| Critère | Impact |
-|---------|--------|
-| Breaking changes | Élever ou baisser priorité |
-| Performance gains | + points |
-| Sécurité fixes | Critique |
-| Effort de migration | - points |
+| Critère             | Impact                     |
+| ------------------- | -------------------------- |
+| Breaking changes    | Élever ou baisser priorité |
+| Performance gains   | + points                   |
+| Sécurité fixes      | Critique                   |
+| Effort de migration | - points                   |
 
 ## 7. Escalade de Risques
 
 ```
 Risque Identifié
     ↓
-Sévérité critique? 
+Sévérité critique?
     → OUI → Escalade immédiate → Décision 24h
     → NON → Planification sprint
 
-Risque accepté? 
+Risque accepté?
     → OUI → Monitoring constant
     → NON → Mitigation plan
 ```
@@ -235,6 +252,7 @@ Risque accepté?
 ## 8. Exemples de Cas d'Usage
 
 ### Case 1 : Vulnérabilité dans Prisma
+
 1. **Détection** : Dependabot crée PR avec fix
 2. **Analyse** : Vérifier CVSS score et applicabilité
 3. **Test** : Suite complète de tests
@@ -242,6 +260,7 @@ Risque accepté?
 5. **Suivi** : Vérifier déploiement réussi
 
 ### Case 2 : Nouvelle version Nuxt
+
 1. **Détection** : Alerte GitHub Releases
 2. **Évaluation** : Lire changelog complet
 3. **POC** : Test sur branche dédiée
@@ -254,13 +273,13 @@ Risque accepté?
 
 ### Newsletters à s'abonner
 
-- [Node.js Security Release](https://nodejs.org/en/blog/) 
+- [Node.js Security Release](https://nodejs.org/en/blog/)
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 - [Nuxt Weekly](https://nuxt.com/blog)
 
 ### Dashboards à Monitorer
 
-- GitHub: [Dependabot Alerts](https://github.com/cesizen/cesizen/security/dependabot)
+- GitHub: [Dependabot Alerts](https://github.com/PaulOwO/CeziZen-DevopsTp/security/dependabot)
 - npm: [Package health](https://www.npmjs.com/)
 - Docker: [Image scan results](https://hub.docker.com/)
 
