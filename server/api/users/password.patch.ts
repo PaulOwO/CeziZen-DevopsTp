@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt'
 import prisma from '../utils/prisma'
+import { BCRYPT_ROUNDS } from '../utils/security'
 import { isValidPassword } from '~/utils/helpers'
 
 export default defineEventHandler(async (event) => {
@@ -12,11 +13,14 @@ export default defineEventHandler(async (event) => {
   }
 
   if (!isValidPassword(body.newPassword)) {
-      throw createError({ statusCode: 400, message: 'Le mot de passe doit contenir au moins 8 caractères' })
-    }
+    throw createError({
+      statusCode: 400,
+      message: 'Le mot de passe doit contenir au moins 8 caractères',
+    })
+  }
 
   const dbUser = await prisma.user.findUnique({
-    where: { id: user.id }
+    where: { id: user.id },
   })
 
   const isValid = await bcrypt.compare(body.currentPassword, dbUser!.passwordHash)
@@ -25,11 +29,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: 'Mot de passe actuel incorrect' })
   }
 
-  const passwordHash = await bcrypt.hash(body.newPassword, 10)
+  const passwordHash = await bcrypt.hash(body.newPassword, BCRYPT_ROUNDS)
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { passwordHash }
+    data: { passwordHash },
   })
 
   return { success: true }
