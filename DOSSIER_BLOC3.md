@@ -30,8 +30,8 @@
    - 3.6 Gestion des incidents critiques
 4. Plan de sécurisation
    - 4.1 Surface d'attaque
-   - 4.2 Analyse des risques
-   - 4.3 Actions préventives et correctives
+   - 4.2 Analyse des risques et plan d'actions
+   - 4.3 Priorités de traitement
    - 4.4 Chiffrement et cryptage
    - 4.5 Données personnelles et RGPD
    - 4.6 Bonnes pratiques de développement
@@ -131,16 +131,25 @@ L'application est **conteneurisée** et orchestrée par Docker Compose autour de
 services :
 
 ```
-                 ┌───────────────────────────────────────────┐
-   Navigateur    │        Machine hôte (runner + Docker)       │
-   ──HTTPS──►    │                                             │
-                 │   ┌─────────┐   ┌───────────┐   ┌────────┐  │
-                 │   │  app    │──►│    db     │◄──│migrate │  │
-                 │   │ Nuxt 4  │   │PostgreSQL │   │(prisma)│  │
-                 │   │ :3000   │   │  :5432    │   └────────┘  │
-                 │   └─────────┘   └───────────┘               │
-                 │        réseau interne Compose (DNS par nom) │
-                 └───────────────────────────────────────────┘
+   Utilisateur (navigateur)
+        │
+        │  HTTPS
+        ▼
+   ┌────────────────────────────────┐
+   │  app — Nuxt / Nitro (port 3000)│   sert le site web + l'API
+   └────────────────────────────────┘
+        │
+        │  requêtes SQL (port 5432) — réseau privé Docker Compose
+        ▼
+   ┌────────────────────────────────┐
+   │  db — PostgreSQL 16            │   + volume de données persistant
+   └────────────────────────────────┘
+
+   Le service « migrate » (Prisma) applique les migrations UNE seule fois,
+   après le démarrage de la base et avant celui de l'app.
+
+   Ordre de démarrage garanti :  db (sain)  →  migrate (terminé)  →  app
+   En déploiement : l'image est TIRÉE depuis GHCR (aucun build sur l'hôte).
 ```
 
 | Service   | Rôle                                                                            |
@@ -155,7 +164,7 @@ sur un schéma de base périmé.
 
 L'image applicative est construite en **multi-stage** (un stage `builder` qui compile,
 un stage `runner` minimal ~266 Mo), tourne en utilisateur **non-root**, et n'embarque
-aucun secret. Détails : [docs/DOCKER_AND_RELEASE.md](docs/DOCKER_AND_RELEASE.md).
+aucun secret.
 
 > **📸 Capture 1 — Application en ligne.** _À capturer :_ le terminal `docker compose
 ps` (ou Docker Desktop) montrant les 3 services (`db` **healthy**, `migrate`
@@ -259,8 +268,6 @@ Points clés :
   les paquets obsolètes et **vérifie la présence des en-têtes de sécurité** dans
   `nuxt.config.ts` (garde-fou de non-régression sécurité).
 
-Détails : [docs/CICD_OVERVIEW.md](docs/CICD_OVERVIEW.md).
-
 > **📸 Capture 3 — Pipeline CI vert.** _À capturer :_ GitHub → onglet **Actions** →
 > dernier run de « **CI Pipeline** » : la liste des étapes toutes **vertes** (lint,
 > build, tests, garde-fou migrations, build + smoke test image). Faire aussi
@@ -339,8 +346,10 @@ exécute son propre déploiement.
   redéployer un tag choisi — utile pour rejouer un déploiement ou effectuer un
   rollback sans créer de commit.
 
-Détails et retours d'expérience (incidents réels) :
-[docs/CD_DEPLOYMENT.md](docs/CD_DEPLOYMENT.md).
+Deux incidents réels rencontrés lors des premiers déploiements ont été analysés et
+corrigés : un **conflit de mot de passe** sur le volume PostgreSQL (dev et déploiement
+partageaient le même volume) — résolu en isolant les deux stacks ; et un **échec
+d'étape** dû à un caractère non-ASCII dans un script PowerShell — résolu en ASCII pur.
 
 > **📸 Capture 7 — Déploiement automatique réussi.** _À capturer :_ le job **`deploy`**
 > vert dans le run Actions, avec le log final `Deploiement OK - application en ligne
@@ -387,8 +396,7 @@ réelle documente les variables. En déploiement, les secrets sont stockés dans
 
 L'outil de gestion des demandes de corrections et d'évolutions est **l'écosystème
 GitHub** (Issues + Projects + Actions), déjà utilisé pour le code — un choix cohérent
-(zéro outil externe, traçabilité complète issue → PR → commit → release). Détails :
-[docs/MAINTENANCE_PLAN.md](docs/MAINTENANCE_PLAN.md), [GUIDE_OUTILS_MAINTENANCE.md](GUIDE_OUTILS_MAINTENANCE.md).
+(zéro outil externe, traçabilité complète issue → PR → commit → release).
 
 ## 3.1 Gestion des anomalies
 
@@ -471,7 +479,7 @@ Rapports **mensuels** (incidents, évolutions déployées, MTTR) et **trimestrie
 ## 3.5 Veille technologique
 
 La pérennité de l'application dépend du suivi des évolutions. La veille est
-**documentée et outillée** ([docs/TECH_WATCH_STRATEGY.md](docs/TECH_WATCH_STRATEGY.md)).
+**documentée et outillée**.
 
 | Domaine                   | Fréquence    | Sources principales                    |
 | ------------------------- | ------------ | -------------------------------------- |
@@ -481,8 +489,8 @@ La pérennité de l'application dépend du suivi des évolutions. La veille est
 | Infrastructure / DevOps   | Hebdomadaire | Docker Hub, GitHub Actions Blog        |
 
 **Processus** : Collecte → Triage → Analyse d'impact → Documentation → Décision →
-Implémentation. Toute découverte est consignée dans le **registre de veille**
-(`.github/TECH_WATCH_LOG.md`).
+Implémentation. Toute découverte est consignée dans un **registre de veille** (date,
+technologie/vulnérabilité, source, impact, décision, statut).
 
 **Automatisation** : **Dependabot** (`.github/dependabot.yml`) ouvre des PR de mise à
 jour hebdomadaires sur trois écosystèmes — npm, GitHub Actions et Docker — validées
@@ -500,9 +508,9 @@ sous **24 h**, mise à jour mineure au sprint suivant, majeure après évaluatio
 
 **Escalade** : `Support (L1) → Développeur (L2) → Tech Lead (L3) → Direction`.
 
-**Post-mortem** systématique après tout incident critique (cause racine, analyse,
-actions correctives, suivi), via un modèle dédié
-([docs/incident-postmortem-template.md](docs/incident-postmortem-template.md)).
+**Post-mortem** systématique après tout incident critique, via un **modèle
+standardisé** (chronologie, cause racine, impact, actions correctives, communication,
+leçons apprises) qui garantit un traitement uniforme et l'amélioration continue.
 
 ---
 
@@ -520,11 +528,11 @@ lecture, interface d'administration. La base PostgreSQL n'est **pas exposée**
 publiquement (réseau interne Docker). L'accès aux données passe exclusivement par
 l'ORM Prisma (requêtes paramétrées).
 
-## 4.2 Analyse des risques
+## 4.2 Analyse des risques et plan d'actions
 
-Chaque risque est coté **Probabilité (P) × Impact (I)** sur une échelle de 1
-(faible) à 4 (critique) ; la **criticité = P × I** fixe la priorité. Référentiel :
-**OWASP Top 10** (2021) et bonnes pratiques **ANSSI**.
+Chaque risque est coté **Probabilité (P) × Impact (I)** (échelle 1 à 4) ; la
+**criticité = P × I** oriente la priorité de traitement. Référentiel : **OWASP Top
+10** (2021) et bonnes pratiques **ANSSI**.
 
 | Criticité (P×I) | Niveau   | Traitement                       |
 | --------------- | -------- | -------------------------------- |
@@ -533,58 +541,44 @@ Chaque risque est coté **Probabilité (P) × Impact (I)** sur une échelle de 1
 | 3 – 5           | Modéré   | Backlog priorisé                 |
 | 1 – 2           | Faible   | Surveillance                     |
 
-Matrice complète des risques identifiés :
+Le tableau ci-dessous est **autoportant** : chaque ligne réunit le risque, sa
+criticité, la mesure **préventive** (qui réduit la probabilité de survenue) et
+l'action **corrective** (appliquée si le risque se réalise). ✅ = déjà en place —
+⚠️ = partiellement couvert / planifié.
 
-| #   | Risque / Vulnérabilité (OWASP)                          | P   | I   | P×I | Niveau | État         |
-| --- | ------------------------------------------------------- | --- | --- | --- | ------ | ------------ |
-| R1  | Injection SQL (A03)                                     | 1   | 4   | 4   | Modéré | ✅ Couvert   |
-| R2  | Vol de session / cookie (A07)                           | 2   | 4   | 8   | Élevé  | ✅ Couvert   |
-| R3  | Brute-force / credential stuffing sur `/api/auth` (A07) | 3   | 3   | 9   | Élevé  | ⚠️ Partiel   |
-| R4  | XSS stocké via contenu admin (`content`/`title`) (A03)  | 2   | 3   | 6   | Élevé  | ⚠️ À traiter |
-| R5  | Clickjacking / framing (A05)                            | 2   | 2   | 4   | Modéré | ✅ Couvert   |
-| R6  | Élévation de privilège (accès admin) (A01)              | 2   | 4   | 8   | Élevé  | ✅ Couvert   |
-| R7  | Exposition de secrets (dépôt / image) (A05)             | 2   | 4   | 8   | Élevé  | ✅ Couvert   |
-| R8  | Dépendances vulnérables (A06)                           | 3   | 3   | 9   | Élevé  | ✅ Couvert   |
-| R9  | Compromission chaîne CI/CD (supply chain) (A08)         | 2   | 4   | 8   | Élevé  | ✅ Couvert   |
-| R10 | Données personnelles / non-conformité RGPD              | 2   | 3   | 6   | Élevé  | ⚠️ Partiel   |
-| R11 | Interruption de service (perte volume, machine éteinte) | 3   | 3   | 9   | Élevé  | ⚠️ Partiel   |
-| R12 | Validation d'entrée insuffisante (données corrompues)   | 3   | 2   | 6   | Élevé  | ⚠️ À traiter |
-| R13 | Absence de journalisation / détection (A09)             | 3   | 2   | 6   | Élevé  | ⚠️ À traiter |
-| R14 | Man-in-the-middle / transport non chiffré (A02)         | 2   | 4   | 8   | Élevé  | ✅ Prévu     |
+| Risque (OWASP)                              | Crit.  | Mesure préventive                                                                | Action corrective                                          |
+| ------------------------------------------- | ------ | -------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| ✅ Injection SQL (A03)                      | Modéré | Accès aux données via Prisma seul (requêtes paramétrées), aucune requête brute   | Règle SonarCloud + audit ; `Prisma.sql` si requête brute   |
+| ✅ Vol de session (A07)                     | Élevé  | Cookie scellé/chiffré, `httpOnly` + `secure` + `sameSite`, expiration 7 j        | Rotation du secret de session + invalidation               |
+| ⚠️ Brute-force sur l'authentification (A07) | Élevé  | Erreur générique (anti-énumération), bcrypt 12, blocage des comptes inactifs     | **Rate-limiting** + verrouillage temporaire ; CAPTCHA      |
+| ⚠️ XSS stocké via contenu admin (A03)       | Élevé  | Échappement Vue par défaut + CSP restrictive (`default-src 'self'`)              | **Sanitisation** des contenus admin ; CSP par nonces       |
+| ✅ Clickjacking (A05)                       | Modéré | `X-Frame-Options: DENY` + CSP `frame-ancestors 'none'`                           | Garde-fou CI vérifiant la présence des en-têtes            |
+| ✅ Élévation de privilège (A01)             | Élevé  | Autorisation **côté serveur** sur toutes les routes (session + rôle → 403)       | Révocation de session ; tests d'autorisation               |
+| ✅ Exposition de secrets (A05)              | Élevé  | Aucun secret versionné (`.env` hors git/Docker), GitHub Secrets, détection Sonar | Rotation immédiate + purge d'historique ; révocation token |
+| ✅ Dépendances vulnérables (A06)            | Élevé  | Dependabot + `npm audit` hebdomadaire                                            | Application du patch (< 24 h si critique)                  |
+| ✅ Compromission de la CI/CD (A08)          | Élevé  | Actions GitHub épinglées à un SHA immuable, permissions minimales                | Dependabot bumpe les SHA ; revue des workflows             |
+| ⚠️ Non-conformité RGPD                      | Élevé  | Minimisation, mots de passe hachés, aucun transfert hors UE                      | Endpoints effacement/export ; notification CNIL (72 h)     |
+| ⚠️ Interruption de service                  | Élevé  | `restart: always`, healthcheck, volume persistant, image immuable                | **Rollback** (`pull …:X.Y.Z`) ; restauration `pg_dump`     |
+| ⚠️ Validation d'entrée insuffisante (A03)   | Élevé  | Contrôles manuels (champs requis, format e-mail, longueur)                       | **Validation zod** stricte (types, bornes) → rejet 400     |
+| ⚠️ Absence de journalisation (A09)          | Élevé  | (à mettre en place) journalisation des évènements de sécurité                    | Supervision + alertes ; corrélation des logs               |
+| ✅ Transport non chiffré / MITM (A02)       | Élevé  | En-tête **HSTS** émis par l'application                                          | **Reverse proxy TLS** + redirection HTTP→HTTPS             |
 
-Légende : ✅ mesure en place — ⚠️ partiellement couvert / action planifiée.
+## 4.3 Priorités de traitement
 
-Pour chaque risque, une action **préventive** (réduire la probabilité) et une action
-**corrective** (réagir si le risque se réalise) sont définies.
+**Déjà opérationnel** (mesures préventives en place) : autorisation côté serveur sur
+toutes les routes sensibles ; injection SQL neutralisée (Prisma) ; **en-têtes de
+sécurité HTTP vérifiés en exécution** (CSP, `X-Frame-Options`,
+`X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, HSTS) ; sessions
+durcies ; secrets hors dépôt ; actions GitHub épinglées à un SHA ; Dependabot +
+`npm audit`.
 
-| #   | Action préventive (en place ou prévue)                                                  | Action corrective                                               |
-| --- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| R1  | Accès données **via Prisma uniquement** (requêtes paramétrées), aucune requête brute    | Correctif + règle SonarCloud sur les injections ; audit du code |
-| R2  | Cookies de session **scellés/chiffrés**, `httpOnly`+`secure`+`sameSite`, expiration 7 j | Rotation du secret de session + invalidation des sessions       |
-| R3  | Message d'erreur générique (anti-énumération), bcrypt coût 12, blocage comptes inactifs | Ajout **rate-limiting** + verrouillage temporaire ; CAPTCHA     |
-| R4  | Échappement Vue par défaut, **CSP** restrictive (`default-src 'self'`)                  | **Sanitisation** des contenus admin, CSP par nonces             |
-| R5  | En-têtes **`X-Frame-Options: DENY`** + CSP `frame-ancestors 'none'`                     | Vérification en CI (garde-fou en-têtes) ; correctif config      |
-| R6  | **Autorisation serveur** sur toutes les routes (`requireUserSession` + rôle 403)        | Révocation de session, tests de non-régression d'autorisation   |
-| R7  | Aucun secret versionné (`.env` hors git/Docker), GitHub Secrets, détection Sonar        | **Rotation** immédiate + purge d'historique ; révocation token  |
-| R8  | **Dependabot** (npm) + `npm audit` hebdomadaire                                         | Application du patch (< 24 h si critique)                       |
-| R9  | Actions GitHub **épinglées à un SHA**, permissions minimales                            | Dependabot (github-actions) bumpe les SHA ; revue workflows     |
-| R10 | Minimisation, mots de passe hachés, pas de transfert hors UE                            | Endpoints RGPD (effacement/export), notification CNIL           |
-| R11 | `restart: always`, healthcheck, volume persistant, image versionnée immuable            | **Rollback** (`pull …:X.Y.Z`), restauration `pg_dump`           |
-| R12 | Contrôles manuels (champs requis, format e-mail, longueur)                              | **Validation zod** stricte (bornes, types) → rejet 400          |
-| R13 | (à mettre en place) journalisation des évènements de sécurité                           | Supervision + alertes ; corrélation des logs                    |
-| R14 | En-tête **HSTS** émis par l'application                                                 | **Reverse proxy TLS** + redirection HTTP→HTTPS en production    |
+**Feuille de route corrective priorisée** :
 
-**Synthèse des mesures préventives déjà opérationnelles** : autorisation côté serveur
-sur toutes les routes sensibles ; injection SQL neutralisée (Prisma) ; **en-têtes de
-sécurité HTTP** appliqués à toutes les réponses et **vérifiés en exécution** (CSP,
-`X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`,
-`Permissions-Policy`, HSTS) ; sessions durcies ; secrets hors dépôt ; actions GitHub
-épinglées à un SHA ; Dependabot + `npm audit`.
-
-**Feuille de route corrective priorisée** : (1) rate-limiting sur l'authentification
-(R3) ; (2) validation zod + sanitisation des contenus admin (R4, R12) ; (3) reverse
-proxy TLS + redirection HTTPS (R14) ; (4) endpoints RGPD effacement/export (R10) ;
-(5) journalisation de sécurité + supervision (R13).
+1. **Rate-limiting** sur les routes d'authentification (contre le brute-force).
+2. **Validation zod + sanitisation** des contenus administrateur (entrées + anti-XSS).
+3. **Reverse proxy TLS** + redirection HTTPS en production.
+4. Endpoints **RGPD** d'effacement et d'export des données.
+5. **Journalisation** de sécurité + supervision/alertes.
 
 > **📸 Capture 12 — En-têtes de sécurité HTTP.** _À capturer :_ le navigateur sur
 > l'application → **DevTools (F12) → onglet Network** → cliquer la requête du document
@@ -714,16 +708,16 @@ restants, plan de sécurisation et documentation RGPD complets.
 (cible production : serveur 24/7 + sauvegardes + supervision) ; les actions
 correctives priorisées (rate-limiting, validation zod, TLS reverse proxy, endpoints
 RGPD, journalisation) constituent la suite immédiate. Ces choix et compromis sont
-tracés dans [docs/decisions.md](docs/decisions.md) et
-[docs/NOTES_PEDAGOGIQUES.md](docs/NOTES_PEDAGOGIQUES.md).
+tracés sous forme de **décisions techniques (ADR)** et de notes de raisonnement dans
+la documentation du projet.
 
 ---
 
 # 6. Annexes — Documentation de référence
 
-Ces documents constituent le **complément technique** du présent dossier (qui se
-suffit à lui-même) : ils sont versionnés dans le dépôt et **présentés/démontrés lors
-de la soutenance** (pipelines exécutés, tableaux de bord, configuration des outils).
+Le dossier se suffit à lui-même. Le projet est par ailleurs **documenté en
+profondeur** dans le dépôt : les fichiers ci-dessous constituent le complément
+technique (chacun est décrit dans la colonne « Contenu »).
 
 | Document                                                   | Contenu                                           |
 | ---------------------------------------------------------- | ------------------------------------------------- |
