@@ -60,7 +60,8 @@ Le présent dossier couvre l'**Activité 3 — Déployer et sécuriser les appli
 informatiques**. Il présente les trois livrables attendus : le **plan de
 déploiement**, le **plan de maintenance** et le **plan de sécurisation**. Les outils
 associés (versioning, automatisation, ticketing) sont **réellement mis en place et
-configurés**, et sont démontrés lors de la soutenance.
+configurés**, ce qu'attestent les **captures d'écran** intégrées tout au long du
+dossier.
 
 ## 1.2 Périmètre fonctionnel couvert
 
@@ -107,10 +108,14 @@ Ce dossier détaille, dans l'ordre du barème :
   préventives et correctives, le chiffrement, la conformité RGPD, les bonnes
   pratiques et la gestion de crise.
 
-Ce dossier est **autoportant** : il contient l'ensemble des éléments évalués. La
-documentation technique complète versionnée dans le dépôt (dossier `docs/`, cf.
-Annexes) en constitue le **complément** et est **présentée et démontrée en
-soutenance** (pipelines, tableaux de bord, configuration des outils).
+Ce dossier est **autoportant** : il contient l'ensemble des éléments évalués. Les
+outils configurés sont **attestés par des captures d'écran** (📸) intégrées au fil du
+dossier. La documentation technique complète versionnée dans le dépôt (dossier
+`docs/`, cf. Annexes) en constitue le **complément**.
+
+> **Convention** : les captures d'écran sont numérotées (📸 Capture N) et rangées dans
+> `docs/screenshots/` sous le nom indiqué. Chaque emplacement ci-dessous précise
+> **quoi capturer et où le trouver**.
 
 ---
 
@@ -152,6 +157,13 @@ L'image applicative est construite en **multi-stage** (un stage `builder` qui co
 un stage `runner` minimal ~266 Mo), tourne en utilisateur **non-root**, et n'embarque
 aucun secret. Détails : [docs/DOCKER_AND_RELEASE.md](docs/DOCKER_AND_RELEASE.md).
 
+> **📸 Capture 1 — Application en ligne.** _À capturer :_ le terminal `docker compose
+ps` (ou Docker Desktop) montrant les 3 services (`db` **healthy**, `migrate`
+> **exited (0)**, `app` **up**), **à côté** du navigateur ouvert sur
+> `http://localhost:3000` affichant la page d'accueil CESIZen.
+>
+> `![Capture 1 — Application en ligne](docs/screenshots/01-app-en-ligne.png)`
+
 ## 2.2 Les trois environnements
 
 | Caractéristique  | Développement                             | Test / Intégration (CI)                 | Production (déploiement)                           |
@@ -166,8 +178,8 @@ aucun secret. Détails : [docs/DOCKER_AND_RELEASE.md](docs/DOCKER_AND_RELEASE.md
 
 Le cahier des charges impose qu'**un seul environnement** soit réellement mis en
 place et configuré pour la démonstration : c'est l'environnement de **déploiement
-(production locale)**, décrit en §2.6 et démontré à la soutenance. Les deux autres
-sont opérationnels (dev local, CI GitHub Actions).
+(production locale)**, décrit en §2.6. Les deux autres sont opérationnels (dev local,
+CI GitHub Actions).
 
 ## 2.3 Versioning des sources et flux Git
 
@@ -204,6 +216,13 @@ L'outil de versioning est **Git**, hébergé sur **GitHub**
 | `pre-commit` | Reformate les fichiers stagés (Prettier via lint-staged). |
 | `commit-msg` | Valide le format du message (Commitlint).                 |
 | `pre-push`   | Vérifie le nom de la branche.                             |
+
+> **📸 Capture 2 — Protection de branche.** _À capturer :_ GitHub → **Settings →
+> Branches** → règle de `master` : montrer « Require a pull request », « Require
+> approvals (1) », « Require status checks » (avec **CI Pipeline**, **Branch Name
+> Check**, **SonarCloud** cochés) et « Do not allow bypassing ».
+>
+> `![Capture 2 — Protection de branche](docs/screenshots/02-branch-protection.png)`
 
 ## 2.4 Intégration continue (CI)
 
@@ -242,6 +261,19 @@ Points clés :
 
 Détails : [docs/CICD_OVERVIEW.md](docs/CICD_OVERVIEW.md).
 
+> **📸 Capture 3 — Pipeline CI vert.** _À capturer :_ GitHub → onglet **Actions** →
+> dernier run de « **CI Pipeline** » : la liste des étapes toutes **vertes** (lint,
+> build, tests, garde-fou migrations, build + smoke test image). Faire aussi
+> apparaître la section **Artifacts** en bas avec `migration-script`.
+>
+> `![Capture 3 — Pipeline CI vert](docs/screenshots/03-ci-pipeline.png)`
+
+> **📸 Capture 4 — Runner auto-hébergé.** _À capturer :_ GitHub → **Settings → Actions
+> → Runners** : le runner self-hosted au statut **Idle** (vert). Preuve que
+> l'automatisation tourne sur la machine cible.
+>
+> `![Capture 4 — Runner self-hosted](docs/screenshots/04-runner-idle.png)`
+
 ## 2.5 Conteneurisation et release versionnée
 
 **Le numéro de version n'est jamais saisi à la main** : il est calculé par
@@ -261,6 +293,18 @@ sur GHCR avec **trois tags** :
 - `:X.Y.Z` — **immuable** → sert au **rollback** ;
 - `:latest` — mobile, « dernière version publiée » ;
 - `:<sha>` — lien direct commit ↔ image (traçabilité).
+
+> **📸 Capture 5 — Releases GitHub.** _À capturer :_ GitHub → onglet **Releases** :
+> la liste des versions `vX.Y.Z` créées automatiquement par semantic-release, avec le
+> **changelog** généré (sections Features / Bug Fixes).
+>
+> `![Capture 5 — Releases GitHub](docs/screenshots/05-releases.png)`
+
+> **📸 Capture 6 — Image publiée sur GHCR.** _À capturer :_ page **Packages** du dépôt
+> (`ghcr.io/paulowo/cezizen-devopstp`) montrant les **tags** de l'image : `X.Y.Z`,
+> `latest` et le SHA du commit.
+>
+> `![Capture 6 — Package GHCR](docs/screenshots/06-ghcr-package.png)`
 
 ## 2.6 Déploiement continu (CD)
 
@@ -297,6 +341,18 @@ exécute son propre déploiement.
 
 Détails et retours d'expérience (incidents réels) :
 [docs/CD_DEPLOYMENT.md](docs/CD_DEPLOYMENT.md).
+
+> **📸 Capture 7 — Déploiement automatique réussi.** _À capturer :_ le job **`deploy`**
+> vert dans le run Actions, avec le log final `Deploiement OK - application en ligne
+(HTTP 200)`. Montre le déploiement continu de bout en bout.
+>
+> `![Capture 7 — Job deploy](docs/screenshots/07-deploy-job.png)`
+
+> **📸 Capture 8 — Déploiement manuel (rollback).** _À capturer :_ Actions → workflow
+> « **Deploy (manuel)** » → **Run workflow** avec le champ `tag` (ex. `1.2.0`).
+> Illustre le rejeu/rollback à la demande.
+>
+> `![Capture 8 — Deploy manuel](docs/screenshots/08-deploy-manuel.png)`
 
 ## 2.7 Migrations de base de données : CI vs CD
 
@@ -387,6 +443,19 @@ priorisation trimestrielle, communication régulière aux utilisateurs.
 - **Auto-close stale** : marque les issues inactives 30 j, ferme après 60 j (exempte
   `critical`, `bug`, `security`, `blocked`).
 
+> **📸 Capture 9 — Issues, labels et templates.** _À capturer :_ deux vues côte à
+> côte : (a) l'écran **New issue** montrant les 3 templates (Bug / Feature / Security)
+> et (b) la liste des **Issues** avec des labels colorés (bug, feature, critical…). Si
+> possible, une issue où le bot a **auto-ajouté un label** et posté le commentaire de
+> priorité.
+>
+> `![Capture 9 — Issues & templates](docs/screenshots/09-issues-labels.png)`
+
+> **📸 Capture 10 — Project board (Kanban).** _À capturer :_ le **Project** GitHub avec
+> les colonnes Backlog → Todo → In Progress → In Review → Done et quelques cartes.
+>
+> `![Capture 10 — Project board](docs/screenshots/10-project-board.png)`
+
 ## 3.4 Suivi et métriques
 
 | Métrique                 | Objectif                  | Définition                      |
@@ -420,6 +489,12 @@ jour hebdomadaires sur trois écosystèmes — npm, GitHub Actions et Docker —
 par la CI avant tout merge. Politique de mise à jour : correctif de sécurité déployé
 sous **24 h**, mise à jour mineure au sprint suivant, majeure après évaluation
 (2–4 semaines).
+
+> **📸 Capture 11 — Veille automatisée (Dependabot).** _À capturer :_ au choix — les
+> **PR ouvertes par Dependabot** (onglet Pull requests, auteur `dependabot`) **ou**
+> l'onglet **Security → Dependabot alerts**. Preuve de la veille sécurité outillée.
+>
+> `![Capture 11 — Dependabot](docs/screenshots/11-dependabot.png)`
 
 ## 3.6 Gestion des incidents critiques
 
@@ -511,6 +586,14 @@ sécurité HTTP** appliqués à toutes les réponses et **vérifiés en exécuti
 proxy TLS + redirection HTTPS (R14) ; (4) endpoints RGPD effacement/export (R10) ;
 (5) journalisation de sécurité + supervision (R13).
 
+> **📸 Capture 12 — En-têtes de sécurité HTTP.** _À capturer :_ le navigateur sur
+> l'application → **DevTools (F12) → onglet Network** → cliquer la requête du document
+> → section **Response Headers** montrant `Content-Security-Policy`,
+> `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
+> `Strict-Transport-Security`, etc. Preuve concrète du durcissement.
+>
+> `![Capture 12 — En-têtes de sécurité](docs/screenshots/12-security-headers.png)`
+
 ## 4.4 Chiffrement et cryptage
 
 | Donnée / canal           | Mécanisme                                            |
@@ -580,6 +663,12 @@ purge des comptes inactifs.
 - Principe de moindre privilège (permissions minimales des workflows,
   `GITHUB_TOKEN` éphémère).
 
+> **📸 Capture 13 — Qualité de code (SonarCloud).** _À capturer :_ le dashboard
+> SonarCloud du projet avec **Quality Gate : Passed**, et les indicateurs
+> (bugs, vulnerabilities, security hotspots reviewed, coverage).
+>
+> `![Capture 13 — SonarCloud](docs/screenshots/13-sonarcloud.png)`
+
 ## 4.7 Notification d'incident et gestion de crise
 
 **Détection** → **Escalade** (`L1 → L2 → L3 → Direction/DPO`) → traitement selon SLA
@@ -592,6 +681,12 @@ utilisateurs → **post-mortem**.
 
 La politique de divulgation responsable est publiée dans
 [SECURITY.md](SECURITY.md) (canal privé : GitHub Security Advisories / e-mail).
+
+> **📸 Capture 14 — Politique de sécurité.** _À capturer :_ l'onglet **Security** du
+> dépôt GitHub montrant la **Security policy** (SECURITY.md reconnu) et, si visible, la
+> section « Report a vulnerability » / Dependabot alerts activées.
+>
+> `![Capture 14 — Onglet Security](docs/screenshots/14-security-policy.png)`
 
 ---
 
@@ -644,6 +739,27 @@ de la soutenance** (pipelines exécutés, tableaux de bord, configuration des ou
 | [SECURITY.md](SECURITY.md)                                 | Politique de divulgation de vulnérabilités.       |
 | `.github/workflows/`                                       | Workflows CI/CD, triage, dépendances.             |
 | `.github/dependabot.yml`                                   | Configuration Dependabot (npm, actions, Docker).  |
+
+## Liste des captures d'écran à réaliser
+
+Toutes rangées dans `docs/screenshots/`. Détail de cadrage à l'emplacement indiqué.
+
+| #   | Capture                            | Où la prendre                             | Section |
+| --- | ---------------------------------- | ----------------------------------------- | ------- |
+| 1   | Application en ligne               | `docker compose ps` + navigateur `:3000`  | §2.1    |
+| 2   | Protection de branche              | GitHub → Settings → Branches (`master`)   | §2.3    |
+| 3   | Pipeline CI vert + artefact        | GitHub → Actions → run « CI Pipeline »    | §2.4    |
+| 4   | Runner self-hosted « Idle »        | GitHub → Settings → Actions → Runners     | §2.4    |
+| 5   | Releases GitHub + changelog        | GitHub → Releases                         | §2.5    |
+| 6   | Image sur GHCR (tags)              | GitHub → Packages                         | §2.5    |
+| 7   | Job `deploy` vert (HTTP 200)       | GitHub → Actions → job `deploy`           | §2.6    |
+| 8   | Déploiement manuel (rollback)      | GitHub → Actions → « Deploy (manuel) »    | §2.6    |
+| 9   | Issues, labels et templates        | GitHub → Issues (+ New issue)             | §3.3    |
+| 10  | Project board (Kanban)             | GitHub → Projects                         | §3.3    |
+| 11  | Dependabot (PR / alertes)          | GitHub → Pull requests ou Security        | §3.5    |
+| 12  | En-têtes de sécurité HTTP          | Navigateur → DevTools → Network → Headers | §4.3    |
+| 13  | SonarCloud Quality Gate « Passed » | Dashboard SonarCloud                      | §4.6    |
+| 14  | Onglet Security / SECURITY.md      | GitHub → Security                         | §4.7    |
 
 ---
 
