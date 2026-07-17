@@ -21,6 +21,7 @@
    - 2.6 Déploiement continu (CD)
    - 2.7 Migrations de base de données : CI vs CD
    - 2.8 Gestion des secrets
+   - 2.9 Ressources et prérequis
 3. Plan de maintenance
    - 3.1 Gestion des anomalies
    - 3.2 Gestion des évolutions
@@ -236,8 +237,8 @@ L'outil de versioning est **Git**, hébergé sur **GitHub**
 ## 2.4 Intégration continue (CI)
 
 L'automatisation repose sur **GitHub Actions**, exécutée sur un **runner
-auto-hébergé** (self-hosted) installé sur la machine cible — ce qui permet, à la même
-étape, de déployer localement (§2.6).
+auto-hébergé** (self-hosted) installé sur la machine cible — ce qui permet, dans un
+second temps (job `deploy`, §2.6), de déployer sur cette même machine.
 
 Le pipeline `ci.yml` se déclenche sur **push et pull request** vers `master` ou
 `develop`. Ses étapes :
@@ -275,12 +276,6 @@ Points clés :
 >
 > `![Capture 3 — Pipeline CI vert](docs/screenshots/03-ci-pipeline.png)`
 
-> **📸 Capture 4 — Runner auto-hébergé.** _À capturer :_ GitHub → **Settings → Actions
-> → Runners** : le runner self-hosted au statut **Idle** (vert). Preuve que
-> l'automatisation tourne sur la machine cible.
->
-> `![Capture 4 — Runner self-hosted](docs/screenshots/04-runner-idle.png)`
-
 ## 2.5 Conteneurisation et release versionnée
 
 **Le numéro de version n'est jamais saisi à la main** : il est calculé par
@@ -301,17 +296,11 @@ sur GHCR avec **trois tags** :
 - `:latest` — mobile, « dernière version publiée » ;
 - `:<sha>` — lien direct commit ↔ image (traçabilité).
 
-> **📸 Capture 5 — Releases GitHub.** _À capturer :_ GitHub → onglet **Releases** :
+> **📸 Capture 4 — Releases GitHub.** _À capturer :_ GitHub → onglet **Releases** :
 > la liste des versions `vX.Y.Z` créées automatiquement par semantic-release, avec le
 > **changelog** généré (sections Features / Bug Fixes).
 >
-> `![Capture 5 — Releases GitHub](docs/screenshots/05-releases.png)`
-
-> **📸 Capture 6 — Image publiée sur GHCR.** _À capturer :_ page **Packages** du dépôt
-> (`ghcr.io/paulowo/cezizen-devopstp`) montrant les **tags** de l'image : `X.Y.Z`,
-> `latest` et le SHA du commit.
->
-> `![Capture 6 — Package GHCR](docs/screenshots/06-ghcr-package.png)`
+> `![Capture 4 — Releases GitHub](docs/screenshots/04-releases.png)`
 
 ## 2.6 Déploiement continu (CD)
 
@@ -351,17 +340,11 @@ corrigés : un **conflit de mot de passe** sur le volume PostgreSQL (dev et dép
 partageaient le même volume) — résolu en isolant les deux stacks ; et un **échec
 d'étape** dû à un caractère non-ASCII dans un script PowerShell — résolu en ASCII pur.
 
-> **📸 Capture 7 — Déploiement automatique réussi.** _À capturer :_ le job **`deploy`**
+> **📸 Capture 5 — Déploiement automatique réussi.** _À capturer :_ le job **`deploy`**
 > vert dans le run Actions, avec le log final `Deploiement OK - application en ligne
 (HTTP 200)`. Montre le déploiement continu de bout en bout.
 >
-> `![Capture 7 — Job deploy](docs/screenshots/07-deploy-job.png)`
-
-> **📸 Capture 8 — Déploiement manuel (rollback).** _À capturer :_ Actions → workflow
-> « **Deploy (manuel)** » → **Run workflow** avec le champ `tag` (ex. `1.2.0`).
-> Illustre le rejeu/rollback à la demande.
->
-> `![Capture 8 — Deploy manuel](docs/screenshots/08-deploy-manuel.png)`
+> `![Capture 5 — Job deploy](docs/screenshots/05-deploy-job.png)`
 
 ## 2.7 Migrations de base de données : CI vs CD
 
@@ -389,6 +372,25 @@ réelle documente les variables. En déploiement, les secrets sont stockés dans
 | --------------------------- | ---------------------------------------------- |
 | `POSTGRES_USER/PASSWORD/DB` | Identifiants de la base déployée.              |
 | `NUXT_SESSION_PASSWORD`     | Secret de chiffrement des cookies (≥ 32 car.). |
+
+## 2.9 Ressources et prérequis
+
+Le plan de déploiement mobilise des ressources volontairement **légères et
+majoritairement gratuites**, cohérentes avec le budget d'une commande publique.
+
+| Type     | Ressource                                               | Rôle / dimensionnement                                                                                                                       |
+| -------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Matériel | Machine hôte du runner self-hosted                      | Exécute la CI/CD **et** héberge les conteneurs. Démo : poste Windows ; cible prod : serveur Linux 24/7 (≈ 2 vCPU / 4 Go RAM / 20 Go disque). |
+| Logiciel | Docker + Docker Compose                                 | Conteneurisation et orchestration des 3 services (`db`, `migrate`, `app`).                                                                   |
+| Logiciel | Node.js 22 LTS, PostgreSQL 16 (images officielles)      | Runtime applicatif et base de données.                                                                                                       |
+| Service  | GitHub — dépôt, Actions, GHCR, Secrets, Issues/Projects | Versioning, CI/CD, registre d'images et ticketing. Offre **Free** suffisante.                                                                |
+| Service  | SonarCloud, Dependabot                                  | Qualité de code et veille sécurité. **Gratuits** pour un projet public.                                                                      |
+| Humain   | Développeur, Product Owner, QA, DevOps                  | Rôles et responsabilités détaillés au plan de maintenance (§3.1).                                                                            |
+| Coût     | ≈ 0 € pour la démonstration                             | Runner auto-hébergé (aucune minute Actions facturée) + services SaaS en offre gratuite.                                                      |
+
+Le **runner auto-hébergé** joue un double rôle central : il fournit la puissance de
+calcul de la CI/CD _et_ constitue la machine cible du déploiement (§2.6) — ce qui évite
+de provisionner un serveur distant séparé pour la démonstration.
 
 ---
 
@@ -451,25 +453,25 @@ priorisation trimestrielle, communication régulière aux utilisateurs.
 - **Auto-close stale** : marque les issues inactives 30 j, ferme après 60 j (exempte
   `critical`, `bug`, `security`, `blocked`).
 
-> **📸 Capture 9 — Issues, labels et templates.** _À capturer :_ deux vues côte à
+> **📸 Capture 6 — Issues, labels et templates.** _À capturer :_ deux vues côte à
 > côte : (a) l'écran **New issue** montrant les 3 templates (Bug / Feature / Security)
 > et (b) la liste des **Issues** avec des labels colorés (bug, feature, critical…). Si
 > possible, une issue où le bot a **auto-ajouté un label** et posté le commentaire de
 > priorité.
 >
-> `![Capture 9 — Issues & templates](docs/screenshots/09-issues-labels.png)`
+> `![Capture 6 — Issues & templates](docs/screenshots/06-issues-labels.png)`
 
-> **📸 Capture 10 — Project board (Kanban).** _À capturer :_ le **Project** GitHub avec
+> **📸 Capture 7 — Project board (Kanban).** _À capturer :_ le **Project** GitHub avec
 > les colonnes Backlog → Todo → In Progress → In Review → Done et quelques cartes.
 >
-> `![Capture 10 — Project board](docs/screenshots/10-project-board.png)`
+> `![Capture 7 — Project board](docs/screenshots/07-project-board.png)`
 
 ## 3.4 Suivi et métriques
 
 | Métrique                 | Objectif                  | Définition                      |
 | ------------------------ | ------------------------- | ------------------------------- |
 | MTTR                     | < 4 h (critique)          | Temps de détection → résolution |
-| MTBF                     | > 99,5 % uptime           | Disponibilité continue          |
+| Disponibilité (uptime)   | > 99,5 %                  | Temps de service / temps total  |
 | Taux de fermeture        | 100 % des issues traitées | Fermées / ouvertes              |
 | Temps de cycle évolution | < 2 sprints               | Demande → mise en production    |
 
@@ -498,11 +500,11 @@ par la CI avant tout merge. Politique de mise à jour : correctif de sécurité 
 sous **24 h**, mise à jour mineure au sprint suivant, majeure après évaluation
 (2–4 semaines).
 
-> **📸 Capture 11 — Veille automatisée (Dependabot).** _À capturer :_ au choix — les
+> **📸 Capture 8 — Veille automatisée (Dependabot).** _À capturer :_ au choix — les
 > **PR ouvertes par Dependabot** (onglet Pull requests, auteur `dependabot`) **ou**
 > l'onglet **Security → Dependabot alerts**. Preuve de la veille sécurité outillée.
 >
-> `![Capture 11 — Dependabot](docs/screenshots/11-dependabot.png)`
+> `![Capture 8 — Dependabot](docs/screenshots/08-dependabot.png)`
 
 ## 3.6 Gestion des incidents critiques
 
@@ -580,13 +582,13 @@ durcies ; secrets hors dépôt ; actions GitHub épinglées à un SHA ; Dependab
 4. Endpoints **RGPD** d'effacement et d'export des données.
 5. **Journalisation** de sécurité + supervision/alertes.
 
-> **📸 Capture 12 — En-têtes de sécurité HTTP.** _À capturer :_ le navigateur sur
+> **📸 Capture 9 — En-têtes de sécurité HTTP.** _À capturer :_ le navigateur sur
 > l'application → **DevTools (F12) → onglet Network** → cliquer la requête du document
 > → section **Response Headers** montrant `Content-Security-Policy`,
 > `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
 > `Strict-Transport-Security`, etc. Preuve concrète du durcissement.
 >
-> `![Capture 12 — En-têtes de sécurité](docs/screenshots/12-security-headers.png)`
+> `![Capture 9 — En-têtes de sécurité](docs/screenshots/09-security-headers.png)`
 
 ## 4.4 Chiffrement et cryptage
 
@@ -651,17 +653,19 @@ purge des comptes inactifs.
   de code obligatoire.
 - Qualité automatisée : Prettier, ESLint (bloquant), Commitlint, **SonarCloud**
   (Quality Gate + Security Hotspots 100 % revus).
-- Tests **unitaires** (Vitest, 59 tests) + **non-régression E2E** (Playwright, captures
-  de référence) : la CI échoue si un test échoue.
+- **Tests unitaires exécutés en CI** (Vitest, 59 tests) : le pipeline échoue — et la
+  publication est bloquée — si l'un d'eux échoue. Ils sont complétés par des tests de
+  **non-régression visuelle** (Playwright, comparaison à des captures de référence)
+  lancés en local.
 - Conteneur durci (multi-stage, non-root, sans secret).
 - Principe de moindre privilège (permissions minimales des workflows,
   `GITHUB_TOKEN` éphémère).
 
-> **📸 Capture 13 — Qualité de code (SonarCloud).** _À capturer :_ le dashboard
+> **📸 Capture 10 — Qualité de code (SonarCloud).** _À capturer :_ le dashboard
 > SonarCloud du projet avec **Quality Gate : Passed**, et les indicateurs
 > (bugs, vulnerabilities, security hotspots reviewed, coverage).
 >
-> `![Capture 13 — SonarCloud](docs/screenshots/13-sonarcloud.png)`
+> `![Capture 10 — SonarCloud](docs/screenshots/10-sonarcloud.png)`
 
 ## 4.7 Notification d'incident et gestion de crise
 
@@ -675,12 +679,6 @@ utilisateurs → **post-mortem**.
 
 La politique de divulgation responsable est publiée dans
 [SECURITY.md](SECURITY.md) (canal privé : GitHub Security Advisories / e-mail).
-
-> **📸 Capture 14 — Politique de sécurité.** _À capturer :_ l'onglet **Security** du
-> dépôt GitHub montrant la **Security policy** (SECURITY.md reconnu) et, si visible, la
-> section « Report a vulnerability » / Dependabot alerts activées.
->
-> `![Capture 14 — Onglet Security](docs/screenshots/14-security-policy.png)`
 
 ---
 
@@ -743,17 +741,13 @@ Toutes rangées dans `docs/screenshots/`. Détail de cadrage à l'emplacement in
 | 1   | Application en ligne               | `docker compose ps` + navigateur `:3000`  | §2.1    |
 | 2   | Protection de branche              | GitHub → Settings → Branches (`master`)   | §2.3    |
 | 3   | Pipeline CI vert + artefact        | GitHub → Actions → run « CI Pipeline »    | §2.4    |
-| 4   | Runner self-hosted « Idle »        | GitHub → Settings → Actions → Runners     | §2.4    |
-| 5   | Releases GitHub + changelog        | GitHub → Releases                         | §2.5    |
-| 6   | Image sur GHCR (tags)              | GitHub → Packages                         | §2.5    |
-| 7   | Job `deploy` vert (HTTP 200)       | GitHub → Actions → job `deploy`           | §2.6    |
-| 8   | Déploiement manuel (rollback)      | GitHub → Actions → « Deploy (manuel) »    | §2.6    |
-| 9   | Issues, labels et templates        | GitHub → Issues (+ New issue)             | §3.3    |
-| 10  | Project board (Kanban)             | GitHub → Projects                         | §3.3    |
-| 11  | Dependabot (PR / alertes)          | GitHub → Pull requests ou Security        | §3.5    |
-| 12  | En-têtes de sécurité HTTP          | Navigateur → DevTools → Network → Headers | §4.3    |
-| 13  | SonarCloud Quality Gate « Passed » | Dashboard SonarCloud                      | §4.6    |
-| 14  | Onglet Security / SECURITY.md      | GitHub → Security                         | §4.7    |
+| 4   | Releases GitHub + changelog        | GitHub → Releases                         | §2.5    |
+| 5   | Job `deploy` vert (HTTP 200)       | GitHub → Actions → job `deploy`           | §2.6    |
+| 6   | Issues, labels et templates        | GitHub → Issues (+ New issue)             | §3.3    |
+| 7   | Project board (Kanban)             | GitHub → Projects                         | §3.3    |
+| 8   | Dependabot (PR / alertes)          | GitHub → Pull requests ou Security        | §3.5    |
+| 9   | En-têtes de sécurité HTTP          | Navigateur → DevTools → Network → Headers | §4.3    |
+| 10  | SonarCloud Quality Gate « Passed » | Dashboard SonarCloud                      | §4.6    |
 
 ---
 
