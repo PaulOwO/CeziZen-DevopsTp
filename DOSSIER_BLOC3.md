@@ -107,8 +107,10 @@ Ce dossier détaille, dans l'ordre du barème :
   préventives et correctives, le chiffrement, la conformité RGPD, les bonnes
   pratiques et la gestion de crise.
 
-Chaque partie renvoie, pour le détail technique, à la documentation versionnée dans
-le dépôt (dossier `docs/`, cf. Annexes).
+Ce dossier est **autoportant** : il contient l'ensemble des éléments évalués. La
+documentation technique complète versionnée dans le dépôt (dossier `docs/`, cf.
+Annexes) en constitue le **complément** et est **présentée et démontrée en
+soutenance** (pipelines, tableaux de bord, configuration des outils).
 
 ---
 
@@ -432,8 +434,9 @@ actions correctives, suivi), via un modèle dédié
 # 4. Plan de sécurisation
 
 Application associée au Ministère → cible plausible. Une attention particulière est
-portée à la sécurisation des données et de l'application. Détail complet :
-[docs/SECURITY_PLAN.md](docs/SECURITY_PLAN.md).
+portée à la sécurisation des données et de l'application. Cette section présente
+l'analyse des vulnérabilités, les actions préventives et correctives, le chiffrement,
+la conformité RGPD, les bonnes pratiques et la gestion de crise.
 
 ## 4.1 Surface d'attaque
 
@@ -444,47 +447,69 @@ l'ORM Prisma (requêtes paramétrées).
 
 ## 4.2 Analyse des risques
 
-Cotation **Probabilité × Impact** (échelle 1–4), référentiel OWASP Top 10 / ANSSI.
-Extrait de la matrice (matrice complète : SECURITY_PLAN §2) :
+Chaque risque est coté **Probabilité (P) × Impact (I)** sur une échelle de 1
+(faible) à 4 (critique) ; la **criticité = P × I** fixe la priorité. Référentiel :
+**OWASP Top 10** (2021) et bonnes pratiques **ANSSI**.
 
-| #   | Risque (OWASP)                           | P×I | Niveau | État         |
-| --- | ---------------------------------------- | --- | ------ | ------------ |
-| R1  | Injection SQL (A03)                      | 4   | Modéré | ✅ Couvert   |
-| R2  | Vol de session / cookie (A07)            | 8   | Élevé  | ✅ Couvert   |
-| R3  | Brute-force sur l'authentification (A07) | 9   | Élevé  | ⚠️ Partiel   |
-| R4  | XSS stocké (contenu admin) (A03)         | 6   | Élevé  | ⚠️ À traiter |
-| R6  | Élévation de privilège (A01)             | 8   | Élevé  | ✅ Couvert   |
-| R7  | Exposition de secrets (A05)              | 8   | Élevé  | ✅ Couvert   |
-| R8  | Dépendances vulnérables (A06)            | 9   | Élevé  | ✅ Couvert   |
-| R9  | Compromission CI/CD supply-chain (A08)   | 8   | Élevé  | ✅ Couvert   |
-| R14 | Transport non chiffré / MITM (A02)       | 8   | Élevé  | ✅ Prévu     |
+| Criticité (P×I) | Niveau   | Traitement                       |
+| --------------- | -------- | -------------------------------- |
+| 12 – 16         | Critique | Correction immédiate / bloquante |
+| 6 – 11          | Élevé    | Correction planifiée court terme |
+| 3 – 5           | Modéré   | Backlog priorisé                 |
+| 1 – 2           | Faible   | Surveillance                     |
 
-## 4.3 Actions préventives et correctives
+Matrice complète des risques identifiés :
 
-**Mesures en place (préventives)** :
+| #   | Risque / Vulnérabilité (OWASP)                          | P   | I   | P×I | Niveau | État         |
+| --- | ------------------------------------------------------- | --- | --- | --- | ------ | ------------ |
+| R1  | Injection SQL (A03)                                     | 1   | 4   | 4   | Modéré | ✅ Couvert   |
+| R2  | Vol de session / cookie (A07)                           | 2   | 4   | 8   | Élevé  | ✅ Couvert   |
+| R3  | Brute-force / credential stuffing sur `/api/auth` (A07) | 3   | 3   | 9   | Élevé  | ⚠️ Partiel   |
+| R4  | XSS stocké via contenu admin (`content`/`title`) (A03)  | 2   | 3   | 6   | Élevé  | ⚠️ À traiter |
+| R5  | Clickjacking / framing (A05)                            | 2   | 2   | 4   | Modéré | ✅ Couvert   |
+| R6  | Élévation de privilège (accès admin) (A01)              | 2   | 4   | 8   | Élevé  | ✅ Couvert   |
+| R7  | Exposition de secrets (dépôt / image) (A05)             | 2   | 4   | 8   | Élevé  | ✅ Couvert   |
+| R8  | Dépendances vulnérables (A06)                           | 3   | 3   | 9   | Élevé  | ✅ Couvert   |
+| R9  | Compromission chaîne CI/CD (supply chain) (A08)         | 2   | 4   | 8   | Élevé  | ✅ Couvert   |
+| R10 | Données personnelles / non-conformité RGPD              | 2   | 3   | 6   | Élevé  | ⚠️ Partiel   |
+| R11 | Interruption de service (perte volume, machine éteinte) | 3   | 3   | 9   | Élevé  | ⚠️ Partiel   |
+| R12 | Validation d'entrée insuffisante (données corrompues)   | 3   | 2   | 6   | Élevé  | ⚠️ À traiter |
+| R13 | Absence de journalisation / détection (A09)             | 3   | 2   | 6   | Élevé  | ⚠️ À traiter |
+| R14 | Man-in-the-middle / transport non chiffré (A02)         | 2   | 4   | 8   | Élevé  | ✅ Prévu     |
 
-- **Autorisation côté serveur** sur **toutes** les routes sensibles :
-  `requireUserSession()` + contrôle du rôle (`ADMIN` → sinon 403). Le middleware
-  client n'est qu'un confort d'UX ; la frontière réelle est l'API.
-- **Injection SQL** neutralisée : Prisma uniquement, aucune requête brute.
-- **En-têtes de sécurité HTTP** appliqués à toutes les réponses (mesure ajoutée et
-  vérifiée en exécution) : `Content-Security-Policy`, `X-Frame-Options: DENY`,
-  `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`,
-  `Strict-Transport-Security` (HSTS).
-- **Sessions durcies** : cookies scellés/chiffrés, `httpOnly` + `secure` + `sameSite`,
-  expiration explicite 7 jours.
-- **Secrets** hors dépôt et hors image ; détection SonarCloud.
-- **Supply-chain** : actions GitHub **épinglées à un SHA immuable**, permissions
-  minimales.
-- **Dépendances** : Dependabot + `npm audit` hebdomadaire.
+Légende : ✅ mesure en place — ⚠️ partiellement couvert / action planifiée.
 
-**Actions correctives / feuille de route (priorisée)** :
+Pour chaque risque, une action **préventive** (réduire la probabilité) et une action
+**corrective** (réagir si le risque se réalise) sont définies.
 
-1. **Rate-limiting** sur les routes d'authentification (anti brute-force, R3).
-2. **Validation zod** + **sanitisation** des contenus administrateur (R4, R12).
-3. **Reverse proxy TLS** + redirection HTTPS en production (R14).
-4. Endpoints RGPD **effacement / export** (R10).
-5. **Journalisation** de sécurité + supervision/alertes (R13).
+| #   | Action préventive (en place ou prévue)                                                  | Action corrective                                               |
+| --- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| R1  | Accès données **via Prisma uniquement** (requêtes paramétrées), aucune requête brute    | Correctif + règle SonarCloud sur les injections ; audit du code |
+| R2  | Cookies de session **scellés/chiffrés**, `httpOnly`+`secure`+`sameSite`, expiration 7 j | Rotation du secret de session + invalidation des sessions       |
+| R3  | Message d'erreur générique (anti-énumération), bcrypt coût 12, blocage comptes inactifs | Ajout **rate-limiting** + verrouillage temporaire ; CAPTCHA     |
+| R4  | Échappement Vue par défaut, **CSP** restrictive (`default-src 'self'`)                  | **Sanitisation** des contenus admin, CSP par nonces             |
+| R5  | En-têtes **`X-Frame-Options: DENY`** + CSP `frame-ancestors 'none'`                     | Vérification en CI (garde-fou en-têtes) ; correctif config      |
+| R6  | **Autorisation serveur** sur toutes les routes (`requireUserSession` + rôle 403)        | Révocation de session, tests de non-régression d'autorisation   |
+| R7  | Aucun secret versionné (`.env` hors git/Docker), GitHub Secrets, détection Sonar        | **Rotation** immédiate + purge d'historique ; révocation token  |
+| R8  | **Dependabot** (npm) + `npm audit` hebdomadaire                                         | Application du patch (< 24 h si critique)                       |
+| R9  | Actions GitHub **épinglées à un SHA**, permissions minimales                            | Dependabot (github-actions) bumpe les SHA ; revue workflows     |
+| R10 | Minimisation, mots de passe hachés, pas de transfert hors UE                            | Endpoints RGPD (effacement/export), notification CNIL           |
+| R11 | `restart: always`, healthcheck, volume persistant, image versionnée immuable            | **Rollback** (`pull …:X.Y.Z`), restauration `pg_dump`           |
+| R12 | Contrôles manuels (champs requis, format e-mail, longueur)                              | **Validation zod** stricte (bornes, types) → rejet 400          |
+| R13 | (à mettre en place) journalisation des évènements de sécurité                           | Supervision + alertes ; corrélation des logs                    |
+| R14 | En-tête **HSTS** émis par l'application                                                 | **Reverse proxy TLS** + redirection HTTP→HTTPS en production    |
+
+**Synthèse des mesures préventives déjà opérationnelles** : autorisation côté serveur
+sur toutes les routes sensibles ; injection SQL neutralisée (Prisma) ; **en-têtes de
+sécurité HTTP** appliqués à toutes les réponses et **vérifiés en exécution** (CSP,
+`X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`,
+`Permissions-Policy`, HSTS) ; sessions durcies ; secrets hors dépôt ; actions GitHub
+épinglées à un SHA ; Dependabot + `npm audit`.
+
+**Feuille de route corrective priorisée** : (1) rate-limiting sur l'authentification
+(R3) ; (2) validation zod + sanitisation des contenus admin (R4, R12) ; (3) reverse
+proxy TLS + redirection HTTPS (R14) ; (4) endpoints RGPD effacement/export (R10) ;
+(5) journalisation de sécurité + supervision (R13).
 
 ## 4.4 Chiffrement et cryptage
 
@@ -500,20 +525,48 @@ déchiffrables) ; le transport et les cookies utilisent du **chiffrement** réve
 
 ## 4.5 Données personnelles et RGPD
 
-Détail complet : [docs/RGPD_COMPLIANCE.md](docs/RGPD_COMPLIANCE.md).
+**Rôles** : responsable de traitement = le Ministère (commanditaire) ; sous-traitant
+= le prestataire ; contact `security@cesizen.fr` (relaye au DPO).
 
-- **Registre de traitement** : e-mail, nom/prénom (identification), mot de passe
-  haché ; données d'usage (consultations, sessions de respiration — sensibles vu le
-  contexte santé mentale).
-- **Aucun transfert hors UE**.
-- **Principes appliqués** : minimisation (pas de date de naissance / adresse /
-  téléphone), intégrité et confidentialité (hachage, HTTPS, contrôle d'accès),
-  rectification (modification de compte, changement de mot de passe).
-- **Feuille de route** : politique de confidentialité, droit à l'effacement et à la
-  portabilité (endpoints self-service), gestion du consentement, politique de
-  rétention.
-- **Violation de données** : notification **CNIL sous 72 h** et information des
-  personnes si risque élevé (art. 33-34).
+**Registre de traitement** (issu du modèle de données réel `prisma/schema.prisma`) :
+
+| Donnée                  | Catégorie                    | Finalité                   | Base légale                 |
+| ----------------------- | ---------------------------- | -------------------------- | --------------------------- |
+| E-mail                  | Identification               | Authentification, contact  | Exécution du service        |
+| Nom, prénom             | Identification               | Personnalisation du compte | Exécution du service        |
+| Mot de passe (haché)    | Authentification             | Sécuriser l'accès          | Exécution du service        |
+| Rôle, statut actif      | Technique                    | Contrôle d'accès           | Intérêt légitime / sécurité |
+| Consultations de pages  | Usage                        | Suivi de parcours          | Consentement (à recueillir) |
+| Sessions de respiration | Usage / bien-être (sensible) | Historique personnel       | Consentement (à recueillir) |
+
+**Aucun transfert hors Union Européenne** (exigence du cahier des charges). Les
+données d'usage liées au bien-être sont **sensibles** vu le contexte santé mentale →
+consentement explicite requis dès leur collecte (tables modélisées, non encore
+alimentées par l'API).
+
+**Principes RGPD appliqués** : minimisation (pas de date de naissance / adresse /
+téléphone) ; intégrité et confidentialité (bcrypt, HTTPS/HSTS, cookies scellés,
+contrôle d'accès serveur, secrets externalisés) ; exactitude (modification du compte,
+changement de mot de passe).
+
+**Droits des personnes concernées** :
+
+| Droit                             | État                                                                  |
+| --------------------------------- | --------------------------------------------------------------------- |
+| Accès                             | Consultation du compte ; export structuré **à implémenter**           |
+| Rectification                     | ✅ Modification du compte + changement de mot de passe                |
+| Effacement                        | Désactivation (`isActive`) ; **suppression définitive à implémenter** |
+| Portabilité                       | Export JSON **à implémenter**                                         |
+| Opposition / retrait consentement | Gestion du consentement **à implémenter**                             |
+| Limitation                        | Désactivation du compte (`isActive=false`)                            |
+
+**Violation de données** : qualification/confinement → **notification CNIL sous 72 h**
+(art. 33) → information des personnes si risque élevé (art. 34) → documentation dans
+un registre interne → post-mortem.
+
+**Feuille de route de conformité** : politique de confidentialité, endpoints
+effacement/export self-service, gestion du consentement, politique de rétention et
+purge des comptes inactifs.
 
 ## 4.6 Bonnes pratiques de développement
 
@@ -572,6 +625,10 @@ tracés dans [docs/decisions.md](docs/decisions.md) et
 ---
 
 # 6. Annexes — Documentation de référence
+
+Ces documents constituent le **complément technique** du présent dossier (qui se
+suffit à lui-même) : ils sont versionnés dans le dépôt et **présentés/démontrés lors
+de la soutenance** (pipelines exécutés, tableaux de bord, configuration des outils).
 
 | Document                                                   | Contenu                                           |
 | ---------------------------------------------------------- | ------------------------------------------------- |
